@@ -3,10 +3,12 @@ import {
   amountSplitDiff,
   balances,
   equalPercents,
+  eventStartDate,
   itemAmount,
   itemShares,
   quickSplit,
   settle,
+  sortEventsNewestFirst,
   sortItemsNewestFirst,
   summarize,
   toPercents,
@@ -93,6 +95,29 @@ describe('パーセント', () => {
     expect(toPercents({ A: 7, B: 3, C: 0 }, ['A', 'B', 'C'])).toEqual({ A: 70, B: 30, C: 0 });
     const p = toPercents({ A: 1, B: 1, C: 1 }, ['A', 'B', 'C']);
     expect(p.A + p.B + p.C).toBe(100);
+  });
+});
+
+describe('イベント一覧', () => {
+  const withDates = (id: string, dates: (string | undefined)[]): WarikanEvent => ({
+    ...ev(1, dates.map((date, i) => ({ ...normal(`${id}${i}`, 100, 'A', { mode: 'equal' }), date }))),
+    id,
+  });
+
+  it('一番古い日付を返す', () => {
+    expect(eventStartDate(withDates('x', ['2026-10-03', undefined, '2026-10-01', '2026-10-02']))).toBe('2026-10-01');
+    expect(eventStartDate(withDates('y', []))).toBeUndefined();
+  });
+
+  it('項目のないイベントが上、ほかは一番古い日付の新しい順', () => {
+    const sorted = sortEventsNewestFirst([
+      withDates('old', ['2026-05-01']),
+      withDates('empty1', []),
+      withDates('new', ['2026-09-01', '2026-04-01']),
+      withDates('mid', ['2026-06-01']),
+      withDates('empty2', []),
+    ]);
+    expect(sorted.map((e) => e.id)).toEqual(['empty2', 'empty1', 'mid', 'old', 'new']);
   });
 });
 

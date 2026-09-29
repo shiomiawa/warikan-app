@@ -188,6 +188,27 @@ export function balances(event: WarikanEvent): Record<string, number> {
   return Object.fromEntries(Object.entries(summarize(event)).map(([id, s]) => [id, s.balance]));
 }
 
+/** イベントの支払い項目の中で一番古い日付(YYYY-MM-DD)。日付のある項目がなければ undefined */
+export function eventStartDate(event: WarikanEvent): string | undefined {
+  const dates = event.items.map((i) => i.date).filter((d): d is string => !!d);
+  return dates.length > 0 ? dates.reduce((a, b) => (a < b ? a : b)) : undefined;
+}
+
+/**
+ * イベント一覧の並び(新しい順)。項目がまだないイベントは作ったばかりとみなして上に置き、
+ * ほかは一番古い日付の新しい順。同じなら後から作ったものが上。
+ */
+export function sortEventsNewestFirst(events: WarikanEvent[]): WarikanEvent[] {
+  return events
+    .map((event, order) => ({ event, order, start: eventStartDate(event) }))
+    .sort((a, b) => {
+      if (!a.start !== !b.start) return a.start ? 1 : -1;
+      if (a.start && b.start && a.start !== b.start) return a.start < b.start ? 1 : -1;
+      return b.order - a.order;
+    })
+    .map((x) => x.event);
+}
+
 export type QuickSplitResult = {
   perPerson: number; // 幹事以外の1人あたり
   organizer: number; // 幹事(立て替えた人)の負担
