@@ -5,6 +5,7 @@ import {
   equalPercents,
   itemAmount,
   itemShares,
+  quickSplit,
   settle,
   sortItemsNewestFirst,
   summarize,
@@ -92,6 +93,27 @@ describe('パーセント', () => {
     expect(toPercents({ A: 7, B: 3, C: 0 }, ['A', 'B', 'C'])).toEqual({ A: 70, B: 30, C: 0 });
     const p = toPercents({ A: 1, B: 1, C: 1 }, ['A', 'B', 'C']);
     expect(p.A + p.B + p.C).toBe(100);
+  });
+});
+
+describe('quickSplit', () => {
+  it('割り切れるときは全員同額', () => {
+    expect(quickSplit(9000, 3, 1)).toEqual({ perPerson: 3000, organizer: 3000 });
+  });
+
+  it('端数は切り上げ、余りは幹事が負担する', () => {
+    expect(quickSplit(10000, 3, 1)).toEqual({ perPerson: 3334, organizer: 3332 });
+    expect(quickSplit(10000, 3, 100)).toEqual({ perPerson: 3400, organizer: 3200 });
+  });
+
+  it('少額で幹事がマイナスになるときは切り捨てる', () => {
+    expect(quickSplit(150, 3, 100)).toEqual({ perPerson: 0, organizer: 150 });
+    expect(quickSplit(250, 3, 100)).toEqual({ perPerson: 100, organizer: 50 });
+  });
+
+  it('人数が2人未満や金額が0なら計算しない', () => {
+    expect(quickSplit(1000, 1, 1)).toBeNull();
+    expect(quickSplit(0, 3, 1)).toBeNull();
   });
 });
 

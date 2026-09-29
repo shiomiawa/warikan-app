@@ -1,4 +1,4 @@
-import type { Currency, Etc, Gasoline, Item, Rates, Transfer, WarikanEvent } from './types';
+import type { Currency, Etc, Gasoline, Item, Rates, Rounding, Transfer, WarikanEvent } from './types';
 
 /** 為替レートの初期値(目安)。1通貨単位あたりの円 */
 export const DEFAULT_RATES: Rates = { JPY: 1, USD: 150, KRW: 0.11 };
@@ -186,6 +186,23 @@ export function summarize(event: WarikanEvent): Record<string, MemberSummary> {
 /** 各人の収支 (正=受け取る、負=払う) */
 export function balances(event: WarikanEvent): Record<string, number> {
   return Object.fromEntries(Object.entries(summarize(event)).map(([id, s]) => [id, s.balance]));
+}
+
+export type QuickSplitResult = {
+  perPerson: number; // 幹事以外の1人あたり
+  organizer: number; // 幹事(立て替えた人)の負担
+};
+
+/**
+ * クイック割り勘。合計金額を人数で割り、幹事以外は端数処理の単位で切り上げ、余りは幹事が負担する。
+ * 切り上げると幹事の負担がマイナスになる少額のときは、切り捨てにして余りを幹事が負担する。
+ */
+export function quickSplit(total: number, people: number, rounding: Rounding): QuickSplitResult | null {
+  if (people < 2 || total <= 0) return null;
+  const unit = total / people / rounding;
+  let perPerson = Math.ceil(unit - 1e-9) * rounding;
+  if (total - perPerson * (people - 1) < 0) perPerson = Math.floor(unit + 1e-9) * rounding;
+  return { perPerson, organizer: total - perPerson * (people - 1) };
 }
 
 /** 支払い項目を新しい日付順に並べる。同じ日は後から追加したものが上、日付なしは一番下 */
