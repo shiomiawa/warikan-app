@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { balances, itemAmount, itemShares, settle } from './calc';
-import type { Item, WarikanEvent } from './types';
+import {
+  amountSplitDiff,
+  balances,
+  equalPercents,
+  itemAmount,
+  itemShares,
+  settle,
+  summarize,
+  toPercents,
+} from './calc';
+import type { Item, Rounding, WarikanEvent } from './types';
 
 const members = [
   { id: 'A', nickname: 'A' },
@@ -8,38 +17,78 @@ const members = [
   { id: 'C', nickname: 'C' },
 ];
 
-const normal = (id: string, amount: number, payerId: string, split: Item['split']): Item => ({
-  id, name: id, kind: 'normal', payerId, amount, split,
+const ev = (rounding: Rounding, items: Item[] = [], rates?: WarikanEvent['rates']): WarikanEvent => ({
+  id: 'e', name: 'x', kind: '旅行', rounding, rates, members, items,
+});
+
+const normal = (id: string, amount: number, payerId: string, split: Item['split'], currency?: Item['currency']): Item => ({
+  id, name: id, kind: 'normal', payerId, amount, split, currency,
 });
 
 describe('itemShares', () => {
   it('均等割りで端数は立て替え者が負担する', () => {
-    const s = itemShares(normal('x', 1000, 'A', { mode: 'equal' }), members, 1);
+    const s = itemShares(normal('x', 1000, 'A', { mode: 'equal' }), ev(1));
     expect(s).toEqual({ A: 332, B: 334, C: 334 });
     expect(s.A + s.B + s.C).toBe(1000);
   });
 
   it('100円単位で切り上げ、余りは立て替え者に寄せる', () => {
-    const s = itemShares(normal('x', 1000, 'A', { mode: 'equal' }), members, 100);
+    const s = itemShares(normal('x', 1000, 'A', { mode: 'equal' }), ev(100));
     expect(s).toEqual({ A: 200, B: 400, C: 400 });
   });
 
-  it('比率指定: 7・3・0', () => {
-    const s = itemShares(normal('x', 3000, 'A', { mode: 'ratio', ratios: { A: 7, B: 3, C: 0 } }), members, 1);
+  it('比率指定: 70%・30%・0%', () => {
+    const s = itemShares(normal('x', 3000, 'A', { mode: 'ratio', ratios: { A: 70, B: 30, C: 0 } }), ev(1));
     expect(s).toEqual({ A: 2100, B: 900, C: 0 });
   });
 
   it('立て替え者が対象外なら切り捨てて、余りは立て替え者が負担する', () => {
-    const s = itemShares(normal('x', 1000, 'A', { mode: 'ratio', ratios: { A: 0, B: 1, C: 1 } }), members, 100);
+    const s = itemShares(normal('x', 1000, 'A', { mode: 'ratio', ratios: { A: 0, B: 50, C: 50 } }), ev(100));
     expect(s).toEqual({ A: 0, B: 500, C: 500 });
-    const t = itemShares(normal('x', 1000, 'A', { mode: 'ratio', ratios: { A: 0, B: 1, C: 2 } }), members, 100);
+    const t = itemShares(normal('x', 1000, 'A', { mode: 'ratio', ratios: { A: 0, B: 33, C: 67 } }), ev(100));
     expect(t.A + t.B + t.C).toBe(1000);
     expect(t.A).toBeGreaterThanOrEqual(0);
   });
 
   it('金額指定はそのまま使う', () => {
-    const s = itemShares(normal('x', 1000, 'A', { mode: 'amount', amounts: { A: 500, B: 300, C: 200 } }), members, 1);
+    const s = itemShares(normal('x', 1000, 'A', { mode: 'amount', amounts: { A: 500, B: 300, C: 200 } }), ev(1));
     expect(s).toEqual({ A: 500, B: 300, C: 200 });
+  });
+});
+
+describe('外貨', () => {
+  it('ドルはイベントのレートで円に換算する', () => {
+    const item = normal('x', 100, 'A', { mode: 'equal' }, 'USD');
+    expect(itemAmount(item, { JPY: 1, USD: 150, KRW: 0.1 })).toBe(15000);
+    expect(itemShares(item, ev(1, [], { USD: 150 }))).toEqual({ A: 5000, B: 5000, C: 5000 });
+  });
+
+  it('ウォンは円に換算して四捨五入する', () => {
+    const item = normal('x', 30000, 'A', { mode: 'equal' }, 'KRW');
+    expect(itemAmount(item, { JPY: 1, USD: 150, KRW: 0.11 })).toBe(3300);
+  });
+
+  it('金額指定(ドル)は各人の額を換算し、換算の端数は立て替え者に寄せる', () => {
+    const item = normal('x', 100, 'A', { mode: 'amount', amounts: { A: 50, B: 30.5, C: 19.5 } }, 'USD');
+    expect(amountSplitDiff(item)).toBe(0);
+    expect(itemShares(item, ev(1, [], { USD: 150 }))).toEqual({ A: 7500, B: 4575, C: 2925 });
+  });
+
+  it('小数の誤差があっても金額指定の差は0になる', () => {
+    const item = normal('x', 0.3, 'A', { mode: 'amount', amounts: { A: 0.1, B: 0.2 } }, 'USD');
+    expect(amountSplitDiff(item)).toBe(0);
+  });
+});
+
+describe('パーセント', () => {
+  it('均等に分けると合計100%になる', () => {
+    expect(equalPercents(['A', 'B', 'C'])).toEqual({ A: 34, B: 33, C: 33 });
+  });
+
+  it('以前の比率(7:3:0)をパーセントに直す', () => {
+    expect(toPercents({ A: 7, B: 3, C: 0 }, ['A', 'B', 'C'])).toEqual({ A: 70, B: 30, C: 0 });
+    const p = toPercents({ A: 1, B: 1, C: 1 }, ['A', 'B', 'C']);
+    expect(p.A + p.B + p.C).toBe(100);
   });
 });
 
@@ -66,19 +115,19 @@ describe('itemAmount', () => {
 
 describe('精算', () => {
   it('指示書の動作確認例: 相殺後の金額が手計算と合う', () => {
-    const event: WarikanEvent = {
-      id: 'e', name: '旅行', kind: '旅行', rounding: 1, members,
-      items: [
-        normal('hotel', 30000, 'A', { mode: 'equal' }),
-        normal('dinner', 9000, 'B', { mode: 'equal' }),
-        normal('drink', 3000, 'A', { mode: 'ratio', ratios: { A: 7, B: 3, C: 0 } }),
-      ],
-    };
+    const event = ev(1, [
+      normal('hotel', 30000, 'A', { mode: 'equal' }),
+      normal('dinner', 9000, 'B', { mode: 'equal' }),
+      normal('drink', 3000, 'A', { mode: 'ratio', ratios: { A: 70, B: 30, C: 0 } }),
+    ]);
     // 負担: A=10000+3000+2100=15100, B=10000+3000+900=13900, C=10000+3000=13000
     // 立替: A=33000, B=9000
-    const bal = balances(event);
-    expect(bal).toEqual({ A: 17900, B: -4900, C: -13000 });
-    expect(settle(bal)).toEqual([
+    expect(summarize(event)).toEqual({
+      A: { paid: 33000, share: 15100, balance: 17900 },
+      B: { paid: 9000, share: 13900, balance: -4900 },
+      C: { paid: 0, share: 13000, balance: -13000 },
+    });
+    expect(settle(balances(event))).toEqual([
       { from: 'C', to: 'A', amount: 13000 },
       { from: 'B', to: 'A', amount: 4900 },
     ]);
@@ -91,11 +140,13 @@ describe('精算', () => {
     ]);
   });
 
-  it('収支の合計は0になる', () => {
-    const event: WarikanEvent = {
-      id: 'e', name: 'x', kind: '', rounding: 10, members,
-      items: [normal('a', 12345, 'B', { mode: 'equal' }), normal('b', 999, 'C', { mode: 'ratio', ratios: { A: 1, B: 2, C: 0 } })],
-    };
+  it('収支の合計は0になる(外貨を含む)', () => {
+    const event = ev(10, [
+      normal('a', 12345, 'B', { mode: 'equal' }),
+      normal('b', 999, 'C', { mode: 'ratio', ratios: { A: 33, B: 67, C: 0 } }),
+      normal('c', 12.34, 'A', { mode: 'equal' }, 'USD'),
+      normal('d', 45678, 'C', { mode: 'equal' }, 'KRW'),
+    ], { USD: 147.25, KRW: 0.107 });
     expect(Object.values(balances(event)).reduce((a, b) => a + b, 0)).toBe(0);
   });
 });
