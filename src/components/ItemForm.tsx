@@ -13,14 +13,16 @@ import {
   ITEM_CATEGORIES,
   OTHER,
   itemLabel,
-  memberColor,
+  memberAvatar,
   money,
   newId,
   roundTo,
   toNum,
+  today,
   yen,
 } from '../format';
 import type { Currency, Item, ItemKind, Rates, Split, WarikanEvent } from '../types';
+import MemberName from './MemberName';
 
 type Props = {
   event: WarikanEvent;
@@ -55,7 +57,9 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   );
   const kind: ItemKind = choice === GASOLINE ? 'gasoline' : choice === ETC ? 'etc' : 'normal';
 
+  const [date, setDate] = useState(item ? (item.date ?? '') : today());
   const [name, setName] = useState(item?.name ?? '');
+  const color = (id: string) => memberAvatar(members, id).color;
   const [payerId, setPayerId] = useState(item?.payerId ?? members[0].id);
   const [currency, setCurrency] = useState<Currency>(item?.currency ?? 'JPY');
   const [amount, setAmount] = useState(item?.kind === 'normal' ? str(item.amount) : '');
@@ -125,6 +129,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
       name: name.trim(),
       kind,
       category: kind === 'normal' ? (choice === OTHER ? customCategory.trim() || OTHER : choice) : undefined,
+      date: date || undefined,
       payerId,
       currency: kind === 'normal' ? currency : undefined,
       amount: kind === 'normal' ? roundTo(toNum(amount) ?? 0, decimals) : 0,
@@ -161,6 +166,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   const diff = amountSplitDiff(preview);
 
   const errors: string[] = [];
+  if (!date) errors.push('日付を選んでください');
   if (!name.trim()) errors.push('項目名を入力してください');
   if (kind === 'normal' && (toNum(amount) ?? 0) <= 0) errors.push('金額を入力してください');
   if (itemCur !== 'JPY' && (toNum(rateInput[itemCur]) ?? 0) <= 0) errors.push('為替レートを入力してください');
@@ -182,6 +188,10 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     <form className="card" onSubmit={submit}>
       <h2>{item ? '項目を編集' : '項目を追加'}</h2>
 
+      <label>
+        📅 日付
+        <input type="date" value={date} onChange={(ev) => setDate(ev.target.value)} />
+      </label>
       <label>
         種類
         <select value={choice} onChange={(ev) => setChoice(ev.target.value)}>
@@ -213,16 +223,24 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
           placeholder={kind === 'gasoline' ? '例：ガソリン代' : kind === 'etc' ? '例：往路ETC' : '例：ホテル'}
         />
       </label>
-      <label>
-        立て替え者
-        <select value={payerId} onChange={(ev) => setPayerId(ev.target.value)}>
+      <div className="field">
+        <span className="field-label">立て替え者</span>
+        <div className="payer-chips" role="radiogroup" aria-label="立て替え者">
           {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.nickname}
-            </option>
+            <button
+              key={m.id}
+              type="button"
+              role="radio"
+              aria-checked={payerId === m.id}
+              className={`payer-chip${payerId === m.id ? ' selected' : ''}`}
+              style={payerId === m.id ? { borderColor: color(m.id), background: `${color(m.id)}1a` } : undefined}
+              onClick={() => setPayerId(m.id)}
+            >
+              <MemberName members={members} id={m.id} />
+            </button>
           ))}
-        </select>
-      </label>
+        </div>
+      </div>
 
       {kind === 'normal' && (
         <>
@@ -391,15 +409,15 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
         {mode === 'ratio' && (
           <>
             <div className="gauge" role="img" aria-label={`合計${percentSum}%`}>
-              {members.map((m, i) =>
+              {members.map((m) =>
                 (percents[m.id] ?? 0) > 0 ? (
                   <div
                     key={m.id}
                     className="gauge-seg"
-                    style={{ width: `${percents[m.id]}%`, background: memberColor(i) }}
+                    style={{ width: `${percents[m.id]}%`, background: color(m.id) }}
                     title={`${m.nickname} ${percents[m.id]}%`}
                   >
-                    {percents[m.id] >= 12 ? m.nickname : ''}
+                    {percents[m.id] >= 6 ? memberAvatar(members, m.id).emoji : ''}
                   </div>
                 ) : null,
               )}
@@ -411,10 +429,11 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
               </button>
             </div>
             <p className="muted">合計は100%までです。0%の人は対象外になります。</p>
-            {members.map((m, i) => (
+            {members.map((m) => (
               <div key={m.id} className="pct-row">
-                <span className="dot" style={{ background: memberColor(i) }} />
-                <span className="pct-name">{m.nickname}</span>
+                <span className="pct-name">
+                  <MemberName members={members} id={m.id} />
+                </span>
                 <input
                   type="range"
                   min="0"
@@ -422,7 +441,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
                   step="1"
                   value={percents[m.id] ?? 0}
                   onChange={(ev) => setPercent(m.id, Number(ev.target.value))}
-                  style={{ accentColor: memberColor(i) }}
+                  style={{ accentColor: color(m.id) }}
                   aria-label={`${m.nickname}の比率`}
                 />
                 <input
@@ -446,7 +465,9 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
             <p className="muted">項目金額 {money(original, itemCur)} と合計が一致するように入力してください。</p>
             {members.map((m) => (
               <label key={m.id} className="inline">
-                <span>{m.nickname}</span>
+                <span>
+                  <MemberName members={members} id={m.id} />
+                </span>
                 <input
                   type="number"
                   inputMode={decimals > 0 ? 'decimal' : 'numeric'}

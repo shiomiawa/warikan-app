@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { etcStatus, eventRates, itemAmount, itemCurrency, itemOriginalAmount } from '../calc';
-import { itemLabel, money, yen } from '../format';
+import { Fragment, useState } from 'react';
+import { etcStatus, eventRates, itemAmount, itemCurrency, itemOriginalAmount, sortItemsNewestFirst } from '../calc';
+import { formatDate, itemLabel, money, yen } from '../format';
 import type { Item, WarikanEvent } from '../types';
 import ItemForm from './ItemForm';
+import MemberName from './MemberName';
 
 type Props = { event: WarikanEvent; onChange: (e: WarikanEvent) => void; onSettle: () => void };
 
@@ -12,8 +13,8 @@ const splitLabel = { equal: '均等割り', ratio: '比率指定', amount: '金�
 export default function ItemsTab({ event, onChange, onSettle }: Props) {
   // null=フォーム非表示、'new'=追加、Item=編集
   const [editing, setEditing] = useState<Item | 'new' | null>(null);
-  const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
   const rates = eventRates(event);
+  const sorted = sortItemsNewestFirst(event.items);
 
   if (event.members.length < 2) {
     return (
@@ -52,22 +53,29 @@ export default function ItemsTab({ event, onChange, onSettle }: Props) {
         <p className="muted">まだ項目がありません。</p>
       ) : (
         <ul className="list items">
-          {event.items.map((item) => {
+          {sorted.map((item, i) => {
             const currency = itemCurrency(item);
+            const newDay = i === 0 || sorted[i - 1].date !== item.date;
             return (
-              <li key={item.id}>
+              <Fragment key={item.id}>
+              {newDay && <li className="date-head">📅 {formatDate(item.date)}</li>}
+              <li>
                 <div className="grow">
                   <strong>{item.name}</strong>
                   <span className="tag">{itemLabel(item)}</span>
                   {item.kind === 'etc' && item.etc && (
                     <span className={`tag etc-${etcStatus(item.etc)}`}>{etcLabel[etcStatus(item.etc)]}</span>
                   )}
-                  <div className="muted">
-                    {currency === 'JPY'
-                      ? yen(itemAmount(item, rates))
-                      : `${money(itemOriginalAmount(item), currency)}（${yen(itemAmount(item, rates))}）`}
-                    ・{nick(item.payerId)}が立て替え・{splitLabel[item.split.mode]}
+                  <div className="item-meta">
+                    <MemberName members={event.members} id={item.payerId} />
+                    <span className="muted">が立て替え</span>
+                    <strong className="item-amount">
+                      {currency === 'JPY'
+                        ? yen(itemAmount(item, rates))
+                        : `${money(itemOriginalAmount(item), currency)}（${yen(itemAmount(item, rates))}）`}
+                    </strong>
                   </div>
+                  <div className="muted">{splitLabel[item.split.mode]}</div>
                 </div>
                 <button onClick={() => setEditing(item)}>編集</button>
                 <button
@@ -80,6 +88,7 @@ export default function ItemsTab({ event, onChange, onSettle }: Props) {
                   削除
                 </button>
               </li>
+              </Fragment>
             );
           })}
         </ul>

@@ -1,4 +1,4 @@
-import type { Currency, Item } from './types';
+import type { Currency, Item, Member } from './types';
 
 export const yen = (n: number): string => `${n.toLocaleString('ja-JP')}円`;
 
@@ -44,8 +44,52 @@ export function itemLabel(item: Item): string {
   return `${ITEM_CATEGORY_ICONS[category] ?? '✏️'} ${category}`;
 }
 
-const MEMBER_COLORS = ['#0ea5e9', '#f97316', '#22c55e', '#e11d48', '#a855f7', '#eab308', '#14b8a6', '#64748b'];
-export const memberColor = (index: number): string => MEMBER_COLORS[index % MEMBER_COLORS.length];
+export const MAX_MEMBERS = 10;
+
+/** メンバーのアバター(顔の絵文字と色)。文字色にも使うので白背景で読める濃さにしている */
+export const AVATARS = [
+  { emoji: '😀', color: '#dc2626' },
+  { emoji: '😎', color: '#ea580c' },
+  { emoji: '🥳', color: '#a16207' },
+  { emoji: '🤓', color: '#16a34a' },
+  { emoji: '😺', color: '#0d9488' },
+  { emoji: '🐶', color: '#0284c7' },
+  { emoji: '🦊', color: '#4f46e5' },
+  { emoji: '🐼', color: '#9333ea' },
+  { emoji: '🐸', color: '#db2777' },
+  { emoji: '🐵', color: '#475569' },
+];
+
+/** メンバーのアバター番号。古いデータで未設定なら並び順を使う */
+export const avatarIndex = (m: Member, order: number): number => (m.avatar ?? order) % AVATARS.length;
+
+export function memberAvatar(members: Member[], id: string) {
+  const order = members.findIndex((m) => m.id === id);
+  return AVATARS[order < 0 ? 0 : avatarIndex(members[order], order)];
+}
+
+/** まだ誰も使っていない最初のアバター番号 */
+export function freeAvatar(members: Member[]): number {
+  const used = new Set(members.map(avatarIndex));
+  const free = AVATARS.findIndex((_, i) => !used.has(i));
+  return free < 0 ? 0 : free;
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/** 今日の日付(YYYY-MM-DD、端末の時刻) */
+export function today(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** 'YYYY-MM-DD' → '10/3(土)' */
+export function formatDate(date: string | undefined): string {
+  if (!date) return '日付なし';
+  const [y, m, d] = date.split('-').map(Number);
+  const w = '日月火水木金土'[new Date(y, m - 1, d).getDay()];
+  return `${m}/${d}(${w})`;
+}
 
 export const newId = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto

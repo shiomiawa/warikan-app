@@ -1,12 +1,22 @@
 import { useState } from 'react';
-import { etcStatus, eventRates, itemAmount, itemCurrency, itemOriginalAmount, itemShares, settle, summarize } from '../calc';
-import { CURRENCIES, itemLabel, memberColor, money, yen } from '../format';
+import {
+  etcStatus,
+  eventRates,
+  itemAmount,
+  itemCurrency,
+  itemOriginalAmount,
+  itemShares,
+  settle,
+  sortItemsNewestFirst,
+  summarize,
+} from '../calc';
+import { CURRENCIES, formatDate, itemLabel, memberAvatar, money, yen } from '../format';
 import type { Currency, WarikanEvent } from '../types';
+import MemberName from './MemberName';
 
 export default function ResultTab({ event }: { event: WarikanEvent }) {
   const [copied, setCopied] = useState(false);
   const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
-  const color = (id: string) => memberColor(event.members.findIndex((m) => m.id === id));
 
   const rates = eventRates(event);
   const summary = summarize(event);
@@ -70,13 +80,11 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
                 {transfers.map((t, i) => (
                   <tr key={i}>
                     <td>
-                      <span className="dot" style={{ background: color(t.from) }} />
-                      {nick(t.from)}
+                      <MemberName members={event.members} id={t.from} size="md" />
                     </td>
                     <td className="arrow">→</td>
                     <td>
-                      <span className="dot" style={{ background: color(t.to) }} />
-                      {nick(t.to)}
+                      <MemberName members={event.members} id={t.to} size="md" />
                     </td>
                     <td className="amount">{yen(t.amount)}</td>
                   </tr>
@@ -104,13 +112,12 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
               </tr>
             </thead>
             <tbody>
-              {event.members.map((m, i) => {
+              {event.members.map((m) => {
                 const s = summary[m.id];
                 return (
                   <tr key={m.id}>
                     <td>
-                      <span className="dot" style={{ background: memberColor(i) }} />
-                      {m.nickname}
+                      <MemberName members={event.members} id={m.id} />
                     </td>
                     <td>{yen(s.paid)}</td>
                     <td>{yen(s.share)}</td>
@@ -143,27 +150,35 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
                 <th>金額</th>
                 <th>立替</th>
                 {event.members.map((m) => (
-                  <th key={m.id}>{m.nickname}</th>
+                  <th key={m.id}>
+                    <MemberName members={event.members} id={m.id} />
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {event.items.map((item) => {
+              {sortItemsNewestFirst(event.items).map((item) => {
                 const shares = itemShares(item, event);
                 const cur = itemCurrency(item);
                 return (
                   <tr key={item.id}>
                     <td>
                       {item.name}
-                      <div className="muted">{itemLabel(item)}</div>
+                      <div className="muted">
+                        {formatDate(item.date)} {itemLabel(item)}
+                      </div>
                     </td>
                     <td>
                       {yen(itemAmount(item, rates))}
                       {cur !== 'JPY' && <div className="muted">{money(itemOriginalAmount(item), cur)}</div>}
                     </td>
-                    <td>{nick(item.payerId)}</td>
+                    <td>
+                      <MemberName members={event.members} id={item.payerId} />
+                    </td>
                     {event.members.map((m) => (
-                      <td key={m.id}>{yen(shares[m.id] ?? 0)}</td>
+                      <td key={m.id} style={{ color: memberAvatar(event.members, m.id).color }}>
+                        {yen(shares[m.id] ?? 0)}
+                      </td>
                     ))}
                   </tr>
                 );
