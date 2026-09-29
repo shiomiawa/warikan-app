@@ -259,6 +259,14 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
   const economyWarn = rangeWarning('fuelEconomy', toNum(economy));
   const unitPriceWarn = rangeWarning('unitPrice', toNum(unitPrice));
   const tollWarn = rangeWarning('toll', toNum(tollAmount));
+  // 今の種類・距離の入れ方で表示している欄の注意だけ
+  const activeWarnings = (
+    kind === 'normal'
+      ? [amountWarn]
+      : kind === 'etc'
+        ? [tollWarn]
+        : [gMode === 'odometer' ? odometerWarn : distanceWarn, economyWarn, unitPriceWarn]
+  ).filter((w): w is string => !!w);
 
   const preview = build();
   const original = itemOriginalAmount(preview);
@@ -283,6 +291,11 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
   const submit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (errors.length > 0) return;
+    // 入力欄から離れずに保存を押した場合も、大きく外れた値があれば知らせて確認する
+    if (activeWarnings.length > 0) {
+      playBuzzer();
+      if (!confirm(`${activeWarnings.join('\n')}\n\nこのまま保存しますか？`)) return;
+    }
     playCoinSound();
     onSave(build());
   };
