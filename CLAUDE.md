@@ -13,7 +13,10 @@
 
 ## 開発コマンド
 
-(プロジェクトのセットアップ後に追記する。例: インストール、起動、テスト、ビルド)
+- インストール: `npm install`
+- 開発サーバー: `npm run dev`(http://localhost:5173/warikan-app/)
+- テスト: `npm test`(計算ロジックは `src/calc.ts`、テストは `src/calc.test.ts`)
+- ビルド: `npm run build`(型チェック込み、出力は `dist/`)
 
 ## ルール
 
