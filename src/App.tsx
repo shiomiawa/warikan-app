@@ -5,6 +5,7 @@ import type { Member, Rounding, WarikanEvent } from './types';
 import EventView from './components/EventView';
 import KindField from './components/KindField';
 import MembersEditor from './components/MembersEditor';
+import SettingsView from './components/SettingsView';
 
 const initialMembers = (): Member[] => [
   { id: newId(), nickname: 'メンバー1', avatar: 0 },
@@ -19,6 +20,7 @@ export default function App() {
   const [rounding, setRounding] = useState<Rounding>(1);
   // 作成後に種類の入力欄を初期状態に戻すためのキー
   const [formKey, setFormKey] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => saveData(data), [data]);
 
@@ -35,7 +37,7 @@ export default function App() {
       members: members.map((m, i) => ({ ...m, nickname: m.nickname.trim() || `メンバー${i + 1}` })),
       items: [],
     };
-    setData({ events: [...data.events, ev], currentId: ev.id });
+    setData({ ...data, events: [...data.events, ev], currentId: ev.id });
     setName('');
     setKind(EVENT_KINDS[0]);
     setMembers(initialMembers());
@@ -46,17 +48,42 @@ export default function App() {
     setData((d) => ({ ...d, events: d.events.map((x) => (x.id === ev.id ? ev : x)) }));
 
   if (current) {
+    // 通貨・レートはアプリ全体の設定を使う
+    const withSettings = { ...current, rates: data.settings.rates, currencies: data.settings.currencies };
     return (
       <EventView
-        event={current}
+        event={withSettings}
+        settings={data.settings}
         onChange={updateEvent}
         onBack={() => setData({ ...data, currentId: null })}
       />
     );
   }
 
+  if (showSettings) {
+    return (
+      <main>
+        <div className="topbar">
+          <button className="link back" onClick={() => setShowSettings(false)}>
+            ← トップへ
+          </button>
+        </div>
+        <h1>⚙️ 設定</h1>
+        <SettingsView settings={data.settings} onChange={(settings) => setData({ ...data, settings })} />
+        <button className="primary wide" onClick={() => setShowSettings(false)}>
+          完了
+        </button>
+      </main>
+    );
+  }
+
   return (
     <main>
+      <div className="topbar end">
+        <button className="edit-button" onClick={() => setShowSettings(true)}>
+          ⚙️ 設定
+        </button>
+      </div>
       <header className="hero">
         <h1>✈️ 割り勘アプリ</h1>
         <p>旅行も飲み会も、立て替えをまとめてスッキリ精算</p>
@@ -81,7 +108,7 @@ export default function App() {
               <option value={100}>100円単位</option>
             </select>
           </label>
-          <p className="muted">メンバーや通貨は、あとから ⚙️ 設定で変えられます。</p>
+          <p className="muted">メンバーはあとからイベントの ✏️ 編集で変えられます。</p>
           <button type="submit" className="primary wide" disabled={!name.trim()}>
             作成する
           </button>
@@ -106,7 +133,7 @@ export default function App() {
                   className="danger"
                   onClick={() => {
                     if (confirm(`「${ev.name}」を削除しますか？`))
-                      setData({ events: data.events.filter((x) => x.id !== ev.id), currentId: null });
+                      setData({ ...data, events: data.events.filter((x) => x.id !== ev.id), currentId: null });
                   }}
                 >
                   削除

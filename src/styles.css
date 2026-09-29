@@ -573,13 +573,14 @@ table.final td.amount {
   line-height: 1;
 }
 
-.settings-button {
-  font-size: 1.4rem;
+.topbar.end {
+  justify-content: flex-end;
 }
 
-.settings-button.active {
-  background: var(--accent);
-  border-color: var(--accent);
+.edit-button {
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 0.9rem;
 }
 
 .view-title {

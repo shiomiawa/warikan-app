@@ -9,6 +9,7 @@ import {
   itemOriginalAmount,
   sortItemsNewestFirst,
   toPercents,
+  tollEstimate,
 } from '../calc';
 import {
   CURRENCIES,
@@ -26,12 +27,13 @@ import {
 } from '../format';
 import { googleMapsRouteUrl, routeDistance } from '../route';
 import { playCoinSound } from '../sound';
-import type { Currency, Item, ItemKind, Split, WarikanEvent } from '../types';
+import type { AppSettings, Currency, GasolineMode, Item, ItemKind, Split, WarikanEvent } from '../types';
 import MemberName from './MemberName';
 import NumberInput from './NumberInput';
 
 type Props = {
   event: WarikanEvent;
+  gasolineModes: AppSettings['gasolineModes'];
   item: Item | null;
   onSave: (item: Item) => void;
   onCancel: () => void;
@@ -53,9 +55,15 @@ function initChoice(item: Item | null): string {
   return item.category && ITEM_CATEGORIES.includes(item.category) ? item.category : OTHER;
 }
 
-type RouteMsg = { target: 'gas' | 'toll'; text: string; error?: boolean };
+const GAS_MODE_LABELS: Record<GasolineMode, string> = {
+  map: '地図で距離を調べる',
+  distance: '距離を直接入力',
+  odometer: 'メーターから計算',
+};
 
-export default function ItemForm({ event, item, onSave, onCancel }: Props) {
+type RouteMsg ={ target: 'gas' | 'toll'; text: string; error?: boolean };
+
+export default function ItemForm({ event, gasolineModes, item, onSave, onCancel }: Props) {
   const { members } = event;
   const ids = members.map((m) => m.id);
   const [choice, setChoice] = useState(() => initChoice(item));
@@ -91,7 +99,11 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
 
   // ガソリン
   const g = item?.gasoline;
-  const [gMode, setGMode] = useState<'odometer' | 'distance' | 'map'>(g?.inputMode ?? lastGas?.inputMode ?? 'map');
+  const [gMode, setGMode] = useState<GasolineMode>(g?.inputMode ?? 'map');
+  // 地図は常に使える。ほかの入れ方は設定で有効にしたときだけ(編集中の項目の入れ方は出す)
+  const gasModeOptions = (['map', 'distance', 'odometer'] as GasolineMode[]).filter(
+    (m) => m === 'map' || m === g?.inputMode || gasolineModes.includes(m as Exclude<GasolineMode, 'map'>),
+  );
   const [odoStart, setOdoStart] = useState(str(g?.odoStart));
   const [odoEnd, setOdoEnd] = useState(str(g?.odoEnd));
   const [distance, setDistance] = useState(str(g?.distanceKm));
@@ -161,6 +173,21 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     }
   };
 
+  /** 入口IC・出口ICの距離を調べ、料金式で計算した高速代を金額欄に入れる */
+  const calcToll = () =>
+    findDistance('toll', entryIc, exitIc, (km) => {
+      setTollDistance(km);
+      setTollAmount(String(tollEstimate(Number(km), vehicleClass, discount)));
+    });
+
+  /** 車種・割引を変えたら、計算済みの距離から高速代を計算し直す */
+  const changeTollOption = (nextClass: string, nextDiscount: string) => {
+    setVehicleClass(nextClass);
+    setDiscount(nextDiscount);
+    const km = toNum(tollDistance);
+    if (tollMode === 'auto' && km && km > 0) setTollAmount(String(tollEstimate(km, nextClass, nextDiscount)));
+  };
+
   const build = (): Item => {
     const split: Split =
       mode === 'equal'
@@ -199,7 +226,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
         kind === 'etc'
           ? {
               mode: tollMode,
-              amount: tollMode === 'manual' ? toNum(tollAmount) : undefined,
+              amount: toNum(tollAmount),
               distanceKm: toNum(tollDistance),
               entryIc,
               exitIc,
@@ -225,11 +252,8 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     if ((toNum(economy) ?? 0) <= 0) errors.push('燃費を入力してください');
     if ((toNum(unitPrice) ?? 0) <= 0) errors.push('ガソリン単価を入力してください');
   }
-  if (kind === 'etc') {
-    if (tollMode === 'manual' && (toNum(tollAmount) ?? 0) <= 0) errors.push('高速代を入力してください');
-    if (tollMode === 'auto' && (toNum(tollDistance) ?? 0) <= 0)
-      errors.push('「距離を調べる」を押すか、高速道路の距離を入力してください');
-  }
+  if (kind === 'etc' && (toNum(tollAmount) ?? 0) <= 0)
+    errors.push(tollMode === 'auto' ? '「自動で計算する」を押すか、高速代を入力してください' : '高速代を入力してください');
   if (mode === 'ratio' && percentSum !== 100) errors.push(`比率の合計を100%にしてください（残り${100 - percentSum}%）`);
   if (mode === 'amount' && diff !== 0)
     errors.push(`負担額の合計が項目金額と合っていません（差：${money(diff ?? 0, itemCur)}）`);
@@ -336,20 +360,16 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
       {kind === 'gasoline' && (
         <fieldset>
           <legend>ガソリン代</legend>
-          <div className="radios">
-            <label>
-              <input type="radio" checked={gMode === 'map'} onChange={() => setGMode('map')} />
-              地図で距離を調べる
-            </label>
-            <label>
-              <input type="radio" checked={gMode === 'distance'} onChange={() => setGMode('distance')} />
-              距離を直接入力
-            </label>
-            <label>
-              <input type="radio" checked={gMode === 'odometer'} onChange={() => setGMode('odometer')} />
-              オドメーターから計算
-            </label>
-          </div>
+          {gasModeOptions.length > 1 && (
+            <div className="radios">
+              {gasModeOptions.map((m) => (
+                <label key={m}>
+                  <input type="radio" checked={gMode === m} onChange={() => setGMode(m)} />
+                  {GAS_MODE_LABELS[m]}
+                </label>
+              ))}
+            </div>
+          )}
           {gMode === 'map' && (
             <>
               <label>
@@ -447,13 +467,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
               自動計算
             </label>
           </div>
-          {tollMode === 'manual' ? (
-            <label className="inline">
-              <span>高速代</span>
-              <NumberInput value={tollAmount} onChange={setTollAmount} placeholder="0" />
-              <span className="unit">円</span>
-            </label>
-          ) : (
+          {tollMode === 'auto' && (
             <>
               <label>
                 入口IC
@@ -473,30 +487,9 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
                   ⇅ 入口と出口を入れ替え（帰り道）
                 </button>
               )}
-              <div className="route-actions">
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={busy}
-                  onClick={() => findDistance('toll', entryIc, exitIc, setTollDistance)}
-                >
-                  🗺️ 距離を調べる
-                </button>
-                {entryIc.trim() && exitIc.trim() && (
-                  <a href={googleMapsRouteUrl(entryIc, exitIc)} target="_blank" rel="noreferrer">
-                    Googleマップで確認
-                  </a>
-                )}
-              </div>
-              {routeNote('toll')}
-              <label className="inline">
-                <span>高速道路の距離</span>
-                <NumberInput value={tollDistance} onChange={setTollDistance} decimal />
-                <span className="unit">km</span>
-              </label>
               <label>
                 車種区分
-                <select value={vehicleClass} onChange={(ev) => setVehicleClass(ev.target.value)}>
+                <select value={vehicleClass} onChange={(ev) => changeTollOption(ev.target.value, discount)}>
                   <option>軽自動車等</option>
                   <option>普通車</option>
                   <option>中型車</option>
@@ -506,19 +499,34 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
               </label>
               <label>
                 割引
-                <select value={discount} onChange={(ev) => setDiscount(ev.target.value)}>
+                <select value={discount} onChange={(ev) => changeTollOption(vehicleClass, ev.target.value)}>
                   <option>なし</option>
                   <option value="休日割引">休日割引（30%引き）</option>
                   <option value="深夜割引">深夜割引（30%引き）</option>
                 </select>
               </label>
-              <p className="calc">
-                自動計算の高速代：<strong>{yen(total)}</strong>
-              </p>
-              <p className="muted">
-                NEXCOの料金の計算式（距離・車種・長距離割引）で出した目安です。首都高などの都市高速や、一部の区間の特別料金は含みません。
-              </p>
+              <div className="route-actions">
+                <button type="button" className="primary" disabled={busy} onClick={calcToll}>
+                  🧮 自動で計算する
+                </button>
+                {entryIc.trim() && exitIc.trim() && (
+                  <a href={googleMapsRouteUrl(entryIc, exitIc)} target="_blank" rel="noreferrer">
+                    Googleマップで確認
+                  </a>
+                )}
+              </div>
+              {routeNote('toll')}
             </>
+          )}
+          <label className="inline">
+            <span>高速代</span>
+            <NumberInput value={tollAmount} onChange={setTollAmount} placeholder="0" />
+            <span className="unit">円</span>
+          </label>
+          {tollMode === 'auto' && (
+            <p className="muted">
+              自動で計算した金額は、NEXCOの料金の計算式（距離・車種・長距離割引）による目安です。首都高などの都市高速や、一部の区間の特別料金は含みません。金額は直接直せます。
+            </p>
           )}
           <label>
             通過日時（任意）

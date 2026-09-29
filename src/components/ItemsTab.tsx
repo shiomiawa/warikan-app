@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { eventRates, itemAmount, itemCurrency, itemOriginalAmount, sortItemsNewestFirst } from '../calc';
 import { formatDate, itemLabel, itemTitle, money, yen } from '../format';
-import type { Item, WarikanEvent } from '../types';
+import type { AppSettings, Item, WarikanEvent } from '../types';
 import ItemForm from './ItemForm';
 import MemberName from './MemberName';
 
@@ -9,12 +9,13 @@ type Props = {
   event: WarikanEvent;
   onChange: (e: WarikanEvent) => void;
   onSettle: () => void;
-  onOpenSettings: () => void;
+  onOpenEdit: () => void;
+  settings: AppSettings;
 };
 
 const splitLabel = { equal: '均等割り', ratio: '比率指定', amount: '金額指定' } as const;
 
-export default function ItemsTab({ event, onChange, onSettle, onOpenSettings }: Props) {
+export default function ItemsTab({ event, settings, onChange, onSettle, onOpenEdit }: Props) {
   // null=フォーム非表示、'new'=追加、Item=編集
   const [editing, setEditing] = useState<Item | 'new' | null>(null);
   const rates = eventRates(event);
@@ -23,9 +24,9 @@ export default function ItemsTab({ event, onChange, onSettle, onOpenSettings }: 
   if (event.members.length < 2) {
     return (
       <section className="card">
-        <p className="muted">先に設定でメンバーを2人以上登録してください。</p>
-        <button className="primary wide" onClick={onOpenSettings}>
-          ⚙️ 設定を開く
+        <p className="muted">先にメンバーを2人以上登録してください。</p>
+        <button className="primary wide" onClick={onOpenEdit}>
+          ✏️ メンバーを登録する
         </button>
       </section>
     );
@@ -35,6 +36,7 @@ export default function ItemsTab({ event, onChange, onSettle, onOpenSettings }: 
     return (
       <ItemForm
         event={event}
+        gasolineModes={settings.gasolineModes}
         item={editing === 'new' ? null : editing}
         onCancel={() => setEditing(null)}
         onSave={(item) => {

@@ -1,24 +1,25 @@
 import { useState } from 'react';
 import { eventIcon } from '../format';
-import type { WarikanEvent } from '../types';
+import type { AppSettings, WarikanEvent } from '../types';
+import EventEditView from './EventEditView';
 import ItemsTab from './ItemsTab';
 import ResultTab from './ResultTab';
-import SettingsView from './SettingsView';
 
-type View = 'items' | 'result' | 'settings';
+type View = 'items' | 'result' | 'edit';
 
 type Props = {
   event: WarikanEvent;
+  settings: AppSettings;
   onChange: (e: WarikanEvent) => void;
   onBack: () => void;
 };
 
-export default function EventView({ event, onChange, onBack }: Props) {
-  const [view, setView] = useState<View>(event.members.length < 2 ? 'settings' : 'items');
+export default function EventView({ event, settings, onChange, onBack }: Props) {
+  const [view, setView] = useState<View>(event.members.length < 2 ? 'edit' : 'items');
   const [lastTab, setLastTab] = useState<'items' | 'result'>('items');
 
-  const openSettings = () => setView('settings');
-  const closeSettings = () => setView(lastTab);
+  const openEdit = () => setView('edit');
+  const closeEdit = () => setView(lastTab);
   const openTab = (tab: 'items' | 'result') => {
     setLastTab(tab);
     setView(tab);
@@ -27,8 +28,8 @@ export default function EventView({ event, onChange, onBack }: Props) {
   return (
     <main>
       <div className="topbar">
-        {view === 'settings' ? (
-          <button className="link back" onClick={closeSettings} disabled={event.members.length < 2}>
+        {view === 'edit' ? (
+          <button className="link back" onClick={closeEdit} disabled={event.members.length < 2}>
             ← 戻る
           </button>
         ) : (
@@ -36,14 +37,11 @@ export default function EventView({ event, onChange, onBack }: Props) {
             ← イベント一覧へ
           </button>
         )}
-        <button
-          className={`icon-button settings-button${view === 'settings' ? ' active' : ''}`}
-          onClick={view === 'settings' ? closeSettings : openSettings}
-          aria-label="設定"
-          title="設定"
-        >
-          ⚙️
-        </button>
+        {view !== 'edit' && (
+          <button className="edit-button" onClick={openEdit}>
+            ✏️ 編集
+          </button>
+        )}
       </div>
       <h1>
         {eventIcon(event.kind)} {event.name}
@@ -52,12 +50,12 @@ export default function EventView({ event, onChange, onBack }: Props) {
         {event.kind}・{event.members.length}人
       </p>
 
-      {view === 'settings' ? (
+      {view === 'edit' ? (
         <>
-          <h2 className="view-title">⚙️ 設定</h2>
-          <SettingsView event={event} onChange={onChange} />
-          <button className="primary wide" onClick={closeSettings} disabled={event.members.length < 2}>
-            設定を閉じる
+          <h2 className="view-title">✏️ イベントの編集</h2>
+          <EventEditView event={event} onChange={onChange} />
+          <button className="primary wide" onClick={closeEdit} disabled={event.members.length < 2}>
+            完了
           </button>
         </>
       ) : (
@@ -71,7 +69,13 @@ export default function EventView({ event, onChange, onBack }: Props) {
             </button>
           </nav>
           {view === 'items' && (
-            <ItemsTab event={event} onChange={onChange} onSettle={() => openTab('result')} onOpenSettings={openSettings} />
+            <ItemsTab
+              event={event}
+              settings={settings}
+              onChange={onChange}
+              onSettle={() => openTab('result')}
+              onOpenEdit={openEdit}
+            />
           )}
           {view === 'result' && <ResultTab event={event} />}
         </>

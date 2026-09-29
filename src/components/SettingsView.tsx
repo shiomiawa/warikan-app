@@ -1,78 +1,52 @@
 import { useState } from 'react';
-import { eventCurrencies, eventRates, withMembers } from '../calc';
+import { DEFAULT_RATES } from '../calc';
 import { CURRENCIES, toNum } from '../format';
-import type { Currency, Rounding, WarikanEvent } from '../types';
-import KindField from './KindField';
-import MembersEditor from './MembersEditor';
+import type { AppSettings, Currency, GasolineMode } from '../types';
 import NumberInput from './NumberInput';
 
-type Props = { event: WarikanEvent; onChange: (e: WarikanEvent) => void };
+type Props = { settings: AppSettings; onChange: (s: AppSettings) => void };
 
 const FOREIGN: Exclude<Currency, 'JPY'>[] = ['USD', 'KRW'];
 
-export default function SettingsView({ event, onChange }: Props) {
-  const rates = eventRates(event);
-  const enabled = eventCurrencies(event);
-  const [rateInput, setRateInput] = useState({ USD: String(rates.USD), KRW: String(rates.KRW) });
+const GAS_MODES: { mode: Exclude<GasolineMode, 'map'>; label: string; note: string }[] = [
+  { mode: 'distance', label: '距離を直接入力', note: '走行距離(km)を自分で入れる' },
+  { mode: 'odometer', label: 'メーター（オドメーター）から計算', note: '出発時と到着時のメーターの数字を入れる' },
+];
 
-  const payers = new Set(event.items.map((i) => i.payerId));
-  const usedCurrencies = new Set(event.items.map((i) => i.currency ?? 'JPY'));
+/** アプリ全体の設定(トップページの ⚙️ 設定) */
+export default function SettingsView({ settings, onChange }: Props) {
+  const rates = { ...DEFAULT_RATES, ...settings.rates };
+  const [rateInput, setRateInput] = useState({ USD: String(rates.USD), KRW: String(rates.KRW) });
 
   const setRate = (c: Exclude<Currency, 'JPY'>, v: string) => {
     setRateInput({ ...rateInput, [c]: v });
     const n = toNum(v);
-    if (n != null && n > 0) onChange({ ...event, rates: { ...event.rates, [c]: n } });
+    if (n != null && n > 0) onChange({ ...settings, rates: { ...settings.rates, [c]: n } });
   };
 
-  const toggleCurrency = (c: Currency, on: boolean) =>
-    onChange({ ...event, currencies: on ? [...enabled.filter((x) => x !== c), c] : enabled.filter((x) => x !== c) });
+  const toggleCurrency = (c: Currency, on: boolean) => {
+    const list = settings.currencies.filter((x) => x !== c);
+    onChange({ ...settings, currencies: on ? [...list, c] : list });
+  };
+
+  const toggleGasMode = (m: Exclude<GasolineMode, 'map'>, on: boolean) => {
+    const list = settings.gasolineModes.filter((x) => x !== m);
+    onChange({ ...settings, gasolineModes: on ? [...list, m] : list });
+  };
 
   return (
     <>
       <section className="card">
-        <h2>イベント</h2>
-        <label>
-          イベント名
-          <input value={event.name} onChange={(e) => onChange({ ...event, name: e.target.value })} />
-        </label>
-        <KindField value={event.kind} onChange={(kind) => onChange({ ...event, kind })} />
-        <label>
-          端数処理
-          <select
-            value={event.rounding}
-            onChange={(e) => onChange({ ...event, rounding: Number(e.target.value) as Rounding })}
-          >
-            <option value={1}>1円単位</option>
-            <option value={10}>10円単位</option>
-            <option value={100}>100円単位</option>
-          </select>
-        </label>
-      </section>
-
-      <section className="card">
-        <h2>メンバー</h2>
-        <MembersEditor
-          members={event.members}
-          onChange={(members) => onChange(withMembers(event, members))}
-          removeBlocker={(id) =>
-            payers.has(id)
-              ? `${event.members.find((m) => m.id === id)?.nickname}さんは立て替え者になっている項目があるため削除できません。先に項目を変更してください。`
-              : null
-          }
-        />
-      </section>
-
-      <section className="card">
         <h2>通貨と為替レート</h2>
         <p className="muted">
-          チェックした通貨が、支払い項目の金額欄の横に切り替えボタンとして出ます。精算はこのレートで円に換算します。
+          チェックした通貨が、支払い項目の金額欄の横に切り替えボタンとして出ます。精算はこのレートで円に換算します（すべてのイベント共通）。
         </p>
         {FOREIGN.map((c) => (
           <div key={c} className="currency-setting">
             <label className="check">
               <input
                 type="checkbox"
-                checked={enabled.includes(c)}
+                checked={settings.currencies.includes(c)}
                 onChange={(e) => toggleCurrency(c, e.target.checked)}
               />
               {CURRENCIES[c].label}を使う
@@ -82,12 +56,33 @@ export default function SettingsView({ event, onChange }: Props) {
               <NumberInput value={rateInput[c]} onChange={(v) => setRate(c, v)} decimal />
               <span className="unit">円</span>
             </label>
-            {!enabled.includes(c) && usedCurrencies.has(c) && (
-              <p className="muted">※{CURRENCIES[c].label}の項目があるため、レートは引き続き精算に使われます。</p>
-            )}
           </div>
         ))}
         <p className="muted">初期値（1ドル＝150円、1ウォン＝0.11円）は目安です。実際のレートに直してください。</p>
+      </section>
+
+      <section className="card">
+        <h2>ガソリン代の距離の入れ方</h2>
+        <p className="muted">
+          ふだんは「地図で距離を調べる」を使います。ほかの入れ方も使いたいときはチェックしてください。
+        </p>
+        <label className="check">
+          <input type="checkbox" checked disabled />
+          地図で距離を調べる（標準）
+        </label>
+        {GAS_MODES.map(({ mode, label, note }) => (
+          <label key={mode} className="check">
+            <input
+              type="checkbox"
+              checked={settings.gasolineModes.includes(mode)}
+              onChange={(e) => toggleGasMode(mode, e.target.checked)}
+            />
+            <span>
+              {label}
+              <span className="muted">（{note}）</span>
+            </span>
+          </label>
+        ))}
       </section>
     </>
   );
