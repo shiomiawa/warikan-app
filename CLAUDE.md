@@ -18,6 +18,12 @@
 - テスト: `npm test`(計算ロジックは `src/calc.ts`、テストは `src/calc.test.ts`)
 - ビルド: `npm run build`(型チェック込み、出力は `dist/`)
 
+## デプロイ
+
+- 公開先: https://shiomiawa.github.io/warikan-app/
+- `main` へのプッシュで GitHub Actions(`.github/workflows/deploy.yml`)がテスト・ビルドし、GitHub Pages に公開する
+- `vite.config.ts` の `base` はリポジトリ名(`/warikan-app/`)に合わせている
+
 ## ルール
 
 - 金額は整数(円)で扱う
