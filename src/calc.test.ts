@@ -150,7 +150,8 @@ describe('itemAmount', () => {
     expect(itemAmount({ ...base, kind: 'etc', etc })).toBe(0);
   });
 
-  it('高速代(自動計算): 距離から料金式で計算する', () => {
+  it('高速代(自動計算): 金額欄の値を使い、古いデータで金額がなければ距離から計算する', () => {
+    expect(itemAmount({ ...base, kind: 'etc', etc: { ...etc, mode: 'auto', distanceKm: 100, amount: 2800 } })).toBe(2800);
     expect(itemAmount({ ...base, kind: 'etc', etc: { ...etc, mode: 'auto', distanceKm: 100 } })).toBe(2871);
   });
 });

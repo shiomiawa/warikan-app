@@ -69,4 +69,13 @@ export type WarikanEvent = {
   items: Item[];
 };
 
-export type Transfer = { from: string; to: string; amount: number };
+export type GasolineMode = Gasoline['inputMode'];
+
+/** アプリ全体の設定(トップページの ⚙️ 設定) */
+export type AppSettings = {
+  rates: Partial<Rates>; // 為替レート(1通貨単位あたりの円)
+  currencies: Currency[]; // 使う外貨
+  gasolineModes: Exclude<GasolineMode, 'map'>[]; // 地図のほかに使うガソリン代の距離の入れ方
+};
+
+export type Transfer ={ from: string; to: string; amount: number };

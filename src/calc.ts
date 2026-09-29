@@ -55,9 +55,12 @@ export function tollEstimate(distanceKm: number, vehicleClass: string, discount:
   return Math.round(toll * (1 - (TOLL_DISCOUNT[discount] ?? 0)));
 }
 
+/** 高速代。金額欄の値(自動計算で入れた値、または手入力・手直しした値)を使う */
 export function etcAmount(etc: Etc): number {
+  if (etc.amount != null) return etc.amount;
+  // 金額を持たない古いデータ: 自動計算は距離から、手入力は確定額→概算額の順
   if (etc.mode === 'auto') return tollEstimate(etc.distanceKm ?? 0, etc.vehicleClass, etc.discount);
-  return etc.amount ?? etc.confirmed ?? etc.estimated ?? 0;
+  return etc.confirmed ?? etc.estimated ?? 0;
 }
 
 /** 項目の通貨。ガソリン・ETCは常に円 */
