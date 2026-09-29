@@ -10,8 +10,8 @@
   --border: #cfe3ee;
   --warn-bg: #fff4dc;
   --ok: #1f9d55;
-  --font-body: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Yu Gothic UI', 'Meiryo', sans-serif;
-  --font-title: 'Mochiy Pop One', 'M PLUS Rounded 1c', sans-serif;
+  --font-body: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  --font-title: var(--font-body);
   color-scheme: light;
 }
 
@@ -37,8 +37,8 @@ main {
 h1,
 h2 {
   font-family: var(--font-title);
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  font-weight: 900;
+  letter-spacing: 0.01em;
 }
 
 h1 {
