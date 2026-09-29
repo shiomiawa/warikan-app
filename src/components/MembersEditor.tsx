@@ -40,7 +40,7 @@ export default function MembersEditor({ members, onChange, removeBlocker = () =>
   return (
     <div className="members-editor">
       <div className="stepper">
-        <span className="field-label">人数</span>
+        <span className="field-label">メンバー</span>
         <button
           type="button"
           aria-label="1人減らす"
@@ -60,7 +60,7 @@ export default function MembersEditor({ members, onChange, removeBlocker = () =>
       <ul className="member-rows">
         {members.map((m, i) => (
           <li key={m.id}>
-            <Avatar avatar={memberAvatar(members, m.id)} size="md" />
+            <Avatar avatar={memberAvatar(members, m.id)} size="sm" />
             <input
               value={m.nickname}
               style={{ color: memberAvatar(members, m.id).color }}

@@ -21,6 +21,7 @@ export default function App() {
   // 作成後に種類の入力欄を初期状態に戻すためのキー
   const [formKey, setFormKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => saveData(data), [data]);
 
@@ -42,6 +43,7 @@ export default function App() {
     setKind(EVENT_KINDS[0]);
     setMembers(initialMembers());
     setFormKey((k) => k + 1);
+    setShowCreate(false);
   };
 
   const updateEvent = (ev: WarikanEvent) =>
@@ -79,41 +81,54 @@ export default function App() {
 
   return (
     <main>
-      <div className="topbar end">
+      <header className="hero">
+        <div>
+          <h1>✈️ 割り勘アプリ</h1>
+          <p>立て替えをまとめてスッキリ精算</p>
+        </div>
         <button className="edit-button" onClick={() => setShowSettings(true)}>
           ⚙️ 設定
         </button>
-      </div>
-      <header className="hero">
-        <h1>✈️ 割り勘アプリ</h1>
-        <p>旅行も飲み会も、立て替えをまとめてスッキリ精算</p>
       </header>
-      <section className="card">
-        <h2>イベントを作成</h2>
-        <form onSubmit={createEvent} key={formKey}>
-          <label>
-            イベント名
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例：箱根旅行" />
-          </label>
-          <KindField value={kind} onChange={setKind} />
-          <div className="field">
-            <span className="field-label">メンバー</span>
-            <MembersEditor members={members} onChange={setMembers} />
+
+      {/* イベントがあるときは作成フォームを畳んで、一覧をすぐ見られるようにする */}
+      {showCreate || data.events.length === 0 ? (
+        <section className="card">
+          <div className="card-head">
+            <h2>イベントを作成</h2>
+            {data.events.length > 0 && (
+              <button type="button" className="link" onClick={() => setShowCreate(false)}>
+                閉じる
+              </button>
+            )}
           </div>
-          <label>
-            端数処理
-            <select value={rounding} onChange={(e) => setRounding(Number(e.target.value) as Rounding)}>
-              <option value={1}>1円単位</option>
-              <option value={10}>10円単位</option>
-              <option value={100}>100円単位</option>
-            </select>
-          </label>
-          <p className="muted">メンバーはあとからイベントの ✏️ 編集で変えられます。</p>
-          <button type="submit" className="primary wide" disabled={!name.trim()}>
-            作成する
-          </button>
-        </form>
-      </section>
+          <form onSubmit={createEvent} key={formKey}>
+            <div className="form-grid">
+              <label className="name-field">
+                イベント名
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例：箱根旅行" />
+              </label>
+              <KindField value={kind} onChange={setKind} />
+              <label>
+                端数処理
+                <select value={rounding} onChange={(e) => setRounding(Number(e.target.value) as Rounding)}>
+                  <option value={1}>1円単位</option>
+                  <option value={10}>10円単位</option>
+                  <option value={100}>100円単位</option>
+                </select>
+              </label>
+            </div>
+            <MembersEditor members={members} onChange={setMembers} />
+            <button type="submit" className="primary wide" disabled={!name.trim()}>
+              作成する
+            </button>
+          </form>
+        </section>
+      ) : (
+        <button className="primary wide new-event" onClick={() => setShowCreate(true)}>
+          ＋ 新しいイベントを作成
+        </button>
+      )}
 
       {data.events.length > 0 && (
         <section className="card">

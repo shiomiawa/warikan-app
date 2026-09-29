@@ -28,7 +28,7 @@ export default function KindField({ value, onChange }: Props) {
         </select>
       </label>
       {choice === OTHER && (
-        <label>
+        <label className="kind-custom">
           種類名
           <input
             value={custom}

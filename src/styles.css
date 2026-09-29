@@ -22,7 +22,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #bfe6f7 0%, var(--bg) 220px, #fdf6ec 100%);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   line-height: 1.6;
@@ -31,7 +31,7 @@ body {
 main {
   max-width: 640px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 8px 16px 16px;
 }
 
 h1,
@@ -42,42 +42,47 @@ h2 {
 }
 
 h1 {
-  font-size: 1.5rem;
-  margin: 8px 0 4px;
+  font-size: 1.35rem;
+  margin: 4px 0 2px;
   color: var(--primary-dark);
 }
 
 h2 {
-  font-size: 1.1rem;
-  margin: 0 0 12px;
+  font-size: 1.05rem;
+  margin: 0 0 8px;
   color: var(--primary-dark);
 }
 
+/* トップページの見出し(タイトルと設定ボタンを1行に) */
 .hero {
-  text-align: center;
-  padding: 16px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .hero h1 {
-  font-size: 1.9rem;
+  margin: 0;
+  font-size: 1.4rem;
 }
 
 .hero p {
   margin: 0;
   color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .subtitle {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
 }
 
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 14px rgba(10, 132, 193, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
 }
 
 .card.highlight {
@@ -86,7 +91,7 @@ h2 {
 
 label {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -107,17 +112,26 @@ button {
   font: inherit;
 }
 
-input:not([type='radio']):not([type='range']),
+input:not([type='radio']):not([type='range']):not([type='checkbox']),
 select {
   display: block;
   width: 100%;
   margin-top: 4px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #fff;
   color: var(--text);
   font-weight: 400;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
 }
 
 input:focus,
@@ -153,7 +167,7 @@ button:disabled {
 }
 
 button.primary {
-  background: linear-gradient(135deg, var(--primary), #19a7d8);
+  background: var(--primary);
   border-color: var(--primary);
   color: #fff;
 }
@@ -382,7 +396,7 @@ label.check {
   height: 30px;
   border-radius: 999px;
   overflow: hidden;
-  background: repeating-linear-gradient(45deg, #eef3f6, #eef3f6 8px, #e2eaef 8px, #e2eaef 16px);
+  background: #e8eef2;
   border: 1px solid var(--border);
 }
 
@@ -590,8 +604,8 @@ table.final td.amount {
 .stepper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .stepper .field-label {
@@ -599,9 +613,10 @@ table.final td.amount {
 }
 
 .stepper button {
-  width: 44px;
+  width: 36px;
+  min-height: 36px;
   padding: 0;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .stepper-value {
@@ -610,7 +625,11 @@ table.final td.amount {
   font-size: 1.2rem;
 }
 
+/* メンバーの名前は2列(広い画面では3列)に並べて縦に長くしない */
 .member-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px 10px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -619,19 +638,25 @@ table.final td.amount {
 .member-rows li {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 4px;
+  min-width: 0;
 }
 
 .member-rows input {
   flex: 1;
+  min-width: 0;
   margin-top: 0 !important;
-  font-weight: 700;
+  padding: 6px 8px !important;
+  font-weight: 700 !important;
 }
 
 .member-rows .icon-button {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: none;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .currency-setting {
@@ -702,4 +727,41 @@ button.swap {
   padding: 4px 12px;
   font-size: 0.8rem;
   color: var(--primary-dark);
+}
+
+/* イベント作成フォーム: 名前・種類・端数処理を詰めて並べる */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.form-grid label {
+  margin-bottom: 0;
+}
+
+.form-grid .name-field,
+.form-grid .kind-custom {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 560px) {
+  .form-grid {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+
+  .form-grid .name-field {
+    grid-column: auto;
+  }
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.new-event {
+  margin: 0 0 12px;
 }
