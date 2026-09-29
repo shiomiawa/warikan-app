@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { eventIcon } from '../format';
 import type { WarikanEvent } from '../types';
 import MembersTab from './MembersTab';
 import ItemsTab from './ItemsTab';
@@ -20,7 +21,10 @@ export default function EventView({ event, onChange, onBack }: Props) {
       <button className="link back" onClick={onBack}>
         ← イベント一覧へ
       </button>
-      <h1>{event.name}</h1>
+      <h1>
+        {eventIcon(event.kind)} {event.name}
+      </h1>
+      <p className="muted subtitle">{event.kind}</p>
       <nav className="tabs">
         <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>
           メンバー

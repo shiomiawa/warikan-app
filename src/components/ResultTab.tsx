@@ -1,20 +1,29 @@
 import { useState } from 'react';
-import { balances, etcStatus, itemAmount, itemShares, settle } from '../calc';
-import { yen } from '../format';
-import type { WarikanEvent } from '../types';
+import { etcStatus, eventRates, itemAmount, itemCurrency, itemOriginalAmount, itemShares, settle, summarize } from '../calc';
+import { CURRENCIES, itemLabel, memberColor, money, yen } from '../format';
+import type { Currency, WarikanEvent } from '../types';
 
 export default function ResultTab({ event }: { event: WarikanEvent }) {
   const [copied, setCopied] = useState(false);
   const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
+  const color = (id: string) => memberColor(event.members.findIndex((m) => m.id === id));
 
-  const transfers = settle(balances(event));
+  const rates = eventRates(event);
+  const summary = summarize(event);
+  const transfers = settle(Object.fromEntries(Object.entries(summary).map(([id, s]) => [id, s.balance])));
   const pendingEtc = event.items.filter((i) => i.kind === 'etc' && i.etc && etcStatus(i.etc) !== 'confirmed');
+  const usedCurrencies = [...new Set(event.items.map(itemCurrency))].filter((c): c is Exclude<Currency, 'JPY'> => c !== 'JPY');
+  const rateNotes = usedCurrencies.map((c) => `1${CURRENCIES[c].unit}＝${rates[c]}円`);
+  const total = event.items.reduce((a, i) => a + itemAmount(i, rates), 0);
 
   const text = [
     `【${event.name}】精算結果`,
+    `合計 ${yen(total)}`,
+    '',
     ...(transfers.length === 0
       ? ['精算は不要です']
       : transfers.map((t) => `${nick(t.from)} → ${nick(t.to)}：${yen(t.amount)}`)),
+    ...(rateNotes.length > 0 ? ['', `※換算レート：${rateNotes.join('、')}`] : []),
     ...(pendingEtc.length > 0 ? ['※ETCに概算・未入力の項目があります'] : []),
   ].join('\n');
 
@@ -38,28 +47,90 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
 
   return (
     <>
-      <section className="card">
-        <h2>相殺後：誰が誰にいくら払うか</h2>
+      <section className="card highlight">
+        <h2>💸 最終的な精算表</h2>
+        <p className="muted">この表のとおりに送金すれば、全員の精算が終わります（送金回数が最少になる組み合わせ）。</p>
         {pendingEtc.length > 0 && (
           <p className="warn">ETCに未確定（概算・未入力）の項目があります。確定すると金額が変わる場合があります。</p>
         )}
         {transfers.length === 0 ? (
-          <p>精算は不要です。</p>
+          <p className="done">🎉 精算は不要です</p>
         ) : (
-          <ul className="list transfers">
-            {transfers.map((t, i) => (
-              <li key={i}>
-                <span>
-                  <strong>{nick(t.from)}</strong> → <strong>{nick(t.to)}</strong>
-                </span>
-                <span className="amount">{yen(t.amount)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="table-wrap">
+            <table className="final">
+              <thead>
+                <tr>
+                  <th>払う人</th>
+                  <th></th>
+                  <th>受け取る人</th>
+                  <th>金額</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transfers.map((t, i) => (
+                  <tr key={i}>
+                    <td>
+                      <span className="dot" style={{ background: color(t.from) }} />
+                      {nick(t.from)}
+                    </td>
+                    <td className="arrow">→</td>
+                    <td>
+                      <span className="dot" style={{ background: color(t.to) }} />
+                      {nick(t.to)}
+                    </td>
+                    <td className="amount">{yen(t.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
+        {rateNotes.length > 0 && <p className="muted">換算レート：{rateNotes.join('、')}</p>}
         <button className="primary wide" onClick={copy}>
           {copied ? 'コピーしました' : '結果をテキストでコピー'}
         </button>
+      </section>
+
+      <section className="card">
+        <h2>各人の収支</h2>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>メンバー</th>
+                <th>立て替えた額</th>
+                <th>負担額</th>
+                <th>差額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {event.members.map((m, i) => {
+                const s = summary[m.id];
+                return (
+                  <tr key={m.id}>
+                    <td>
+                      <span className="dot" style={{ background: memberColor(i) }} />
+                      {m.nickname}
+                    </td>
+                    <td>{yen(s.paid)}</td>
+                    <td>{yen(s.share)}</td>
+                    <td className={s.balance > 0 ? 'plus' : s.balance < 0 ? 'minus' : ''}>
+                      {s.balance > 0 ? `${yen(s.balance)} 受け取る` : s.balance < 0 ? `${yen(-s.balance)} 払う` : '±0'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>合計</td>
+                <td>{yen(total)}</td>
+                <td>{yen(total)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </section>
 
       <section className="card">
@@ -78,11 +149,18 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
             </thead>
             <tbody>
               {event.items.map((item) => {
-                const shares = itemShares(item, event.members, event.rounding);
+                const shares = itemShares(item, event);
+                const cur = itemCurrency(item);
                 return (
                   <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td>{yen(itemAmount(item))}</td>
+                    <td>
+                      {item.name}
+                      <div className="muted">{itemLabel(item)}</div>
+                    </td>
+                    <td>
+                      {yen(itemAmount(item, rates))}
+                      {cur !== 'JPY' && <div className="muted">{money(itemOriginalAmount(item), cur)}</div>}
+                    </td>
                     <td>{nick(item.payerId)}</td>
                     {event.members.map((m) => (
                       <td key={m.id}>{yen(shares[m.id] ?? 0)}</td>

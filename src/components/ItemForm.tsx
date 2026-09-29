@@ -1,12 +1,31 @@
 import { useState } from 'react';
-import { amountSplitDiff, gasolineDistance, itemAmount } from '../calc';
-import { newId, toNum, yen } from '../format';
-import type { Item, ItemKind, Split, WarikanEvent } from '../types';
+import {
+  amountSplitDiff,
+  equalPercents,
+  eventRates,
+  gasolineDistance,
+  itemAmount,
+  itemOriginalAmount,
+  toPercents,
+} from '../calc';
+import {
+  CURRENCIES,
+  ITEM_CATEGORIES,
+  OTHER,
+  itemLabel,
+  memberColor,
+  money,
+  newId,
+  roundTo,
+  toNum,
+  yen,
+} from '../format';
+import type { Currency, Item, ItemKind, Rates, Split, WarikanEvent } from '../types';
 
 type Props = {
   event: WarikanEvent;
   item: Item | null;
-  onSave: (item: Item) => void;
+  onSave: (item: Item, rates: Rates) => void;
   onCancel: () => void;
 };
 
@@ -14,12 +33,34 @@ const str = (n: number | undefined) => (n == null ? '' : String(n));
 
 const DORAPLA_URL = 'https://www.driveplaza.com/';
 
+// 種類の選択肢。通常項目はカテゴリ名、ガソリン・ETCは専用の値
+const GASOLINE = '__gasoline';
+const ETC = '__etc';
+
+function initChoice(item: Item | null): string {
+  if (!item) return ITEM_CATEGORIES[0];
+  if (item.kind === 'gasoline') return GASOLINE;
+  if (item.kind === 'etc') return ETC;
+  return item.category && ITEM_CATEGORIES.includes(item.category) ? item.category : OTHER;
+}
+
 export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   const { members } = event;
-  const [kind, setKind] = useState<ItemKind>(item?.kind ?? 'normal');
+  const ids = members.map((m) => m.id);
+  const [choice, setChoice] = useState(() => initChoice(item));
+  const [customCategory, setCustomCategory] = useState(
+    item?.kind === 'normal' && item.category && !ITEM_CATEGORIES.includes(item.category) && item.category !== OTHER
+      ? item.category
+      : '',
+  );
+  const kind: ItemKind = choice === GASOLINE ? 'gasoline' : choice === ETC ? 'etc' : 'normal';
+
   const [name, setName] = useState(item?.name ?? '');
   const [payerId, setPayerId] = useState(item?.payerId ?? members[0].id);
+  const [currency, setCurrency] = useState<Currency>(item?.currency ?? 'JPY');
   const [amount, setAmount] = useState(item?.kind === 'normal' ? str(item.amount) : '');
+  const initRates = eventRates(event);
+  const [rateInput, setRateInput] = useState({ USD: str(initRates.USD), KRW: str(initRates.KRW) });
 
   // ガソリン
   const g = item?.gasoline;
@@ -43,10 +84,8 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   // 負担の割り方
   const initSplit = item?.split;
   const [mode, setMode] = useState<Split['mode']>(initSplit?.mode ?? 'equal');
-  const [ratios, setRatios] = useState<Record<string, string>>(
-    Object.fromEntries(
-      members.map((m) => [m.id, initSplit?.mode === 'ratio' ? str(initSplit.ratios[m.id] ?? 0) : '1']),
-    ),
+  const [percents, setPercents] = useState<Record<string, number>>(() =>
+    initSplit?.mode === 'ratio' ? toPercents(initSplit.ratios, ids) : equalPercents(ids),
   );
   const [amounts, setAmounts] = useState<Record<string, string>>(
     Object.fromEntries(
@@ -54,22 +93,41 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     ),
   );
 
-  const numMap = (m: Record<string, string>) =>
-    Object.fromEntries(members.map((x) => [x.id, toNum(m[x.id] ?? '') ?? 0]));
+  const itemCur: Currency = kind === 'normal' ? currency : 'JPY';
+  const decimals = CURRENCIES[itemCur].decimals;
+  const percentSum = ids.reduce((a, id) => a + (percents[id] ?? 0), 0);
+
+  /** 合計が100%を超えないように、1人の%を設定する */
+  const setPercent = (id: string, value: number) => {
+    const others = percentSum - (percents[id] ?? 0);
+    const v = Math.max(0, Math.min(Math.round(value) || 0, 100 - others));
+    setPercents({ ...percents, [id]: v });
+  };
+
+  const rates: Rates = {
+    ...initRates,
+    USD: toNum(rateInput.USD) ?? initRates.USD,
+    KRW: toNum(rateInput.KRW) ?? initRates.KRW,
+  };
 
   const build = (): Item => {
     const split: Split =
       mode === 'equal'
         ? { mode: 'equal' }
         : mode === 'ratio'
-          ? { mode: 'ratio', ratios: numMap(ratios) }
-          : { mode: 'amount', amounts: numMap(amounts) };
+          ? { mode: 'ratio', ratios: Object.fromEntries(ids.map((id) => [id, percents[id] ?? 0])) }
+          : {
+              mode: 'amount',
+              amounts: Object.fromEntries(ids.map((id) => [id, roundTo(toNum(amounts[id] ?? '') ?? 0, decimals)])),
+            };
     return {
       id: item?.id ?? newId(),
       name: name.trim(),
       kind,
+      category: kind === 'normal' ? (choice === OTHER ? customCategory.trim() || OTHER : choice) : undefined,
       payerId,
-      amount: kind === 'normal' ? Math.round(toNum(amount) ?? 0) : 0,
+      currency: kind === 'normal' ? currency : undefined,
+      amount: kind === 'normal' ? roundTo(toNum(amount) ?? 0, decimals) : 0,
       split,
       gasoline:
         kind === 'gasoline'
@@ -98,24 +156,26 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   };
 
   const preview = build();
-  const total = itemAmount(preview);
+  const original = itemOriginalAmount(preview);
+  const total = itemAmount(preview, rates);
   const diff = amountSplitDiff(preview);
-  const ratioSum = Object.values(numMap(ratios)).reduce((a, b) => a + b, 0);
 
   const errors: string[] = [];
   if (!name.trim()) errors.push('項目名を入力してください');
   if (kind === 'normal' && (toNum(amount) ?? 0) <= 0) errors.push('金額を入力してください');
+  if (itemCur !== 'JPY' && (toNum(rateInput[itemCur]) ?? 0) <= 0) errors.push('為替レートを入力してください');
   if (kind === 'gasoline') {
     if (gasolineDistance(preview.gasoline!) <= 0) errors.push('走行距離を入力してください');
     if ((toNum(economy) ?? 0) <= 0) errors.push('燃費を入力してください');
     if ((toNum(unitPrice) ?? 0) <= 0) errors.push('ガソリン単価を入力してください');
   }
-  if (mode === 'ratio' && ratioSum <= 0) errors.push('比率を1人以上に設定してください');
-  if (mode === 'amount' && diff !== 0) errors.push(`負担額の合計が項目金額と合っていません（差：${yen(diff ?? 0)}）`);
+  if (mode === 'ratio' && percentSum !== 100) errors.push(`比率の合計を100%にしてください（残り${100 - percentSum}%）`);
+  if (mode === 'amount' && diff !== 0)
+    errors.push(`負担額の合計が項目金額と合っていません（差：${money(diff ?? 0, itemCur)}）`);
 
   const submit = (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (errors.length === 0) onSave(build());
+    if (errors.length === 0) onSave(build(), rates);
   };
 
   return (
@@ -124,12 +184,27 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
 
       <label>
         種類
-        <select value={kind} onChange={(ev) => setKind(ev.target.value as ItemKind)}>
-          <option value="normal">通常（飲食・宿泊など）</option>
-          <option value="gasoline">ガソリン代</option>
-          <option value="etc">ETC</option>
+        <select value={choice} onChange={(ev) => setChoice(ev.target.value)}>
+          {ITEM_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {itemLabel({ ...preview, kind: 'normal', category: c })}
+            </option>
+          ))}
+          <option value={GASOLINE}>⛽ ガソリン代</option>
+          <option value={ETC}>🛣️ ETC</option>
+          <option value={OTHER}>✏️ その他（自由入力）</option>
         </select>
       </label>
+      {choice === OTHER && (
+        <label>
+          種類名
+          <input
+            value={customCategory}
+            onChange={(ev) => setCustomCategory(ev.target.value)}
+            placeholder="例：お土産、レンタカー、チップ"
+          />
+        </label>
+      )}
       <label>
         項目名
         <input
@@ -150,10 +225,51 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
       </label>
 
       {kind === 'normal' && (
-        <label>
-          金額（円）
-          <input type="number" inputMode="numeric" min="0" value={amount} onChange={(ev) => setAmount(ev.target.value)} />
-        </label>
+        <>
+          <label>
+            通貨
+            <select value={currency} onChange={(ev) => setCurrency(ev.target.value as Currency)}>
+              {(Object.keys(CURRENCIES) as Currency[]).map((c) => (
+                <option key={c} value={c}>
+                  {CURRENCIES[c].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            金額（{CURRENCIES[currency].unit}）
+            <input
+              type="number"
+              inputMode={decimals > 0 ? 'decimal' : 'numeric'}
+              min="0"
+              step={decimals > 0 ? '0.01' : '1'}
+              value={amount}
+              onChange={(ev) => setAmount(ev.target.value)}
+            />
+          </label>
+          {currency !== 'JPY' && (
+            <>
+              <label className="inline">
+                <span>1{CURRENCIES[currency].unit} ＝</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="any"
+                  value={rateInput[currency]}
+                  onChange={(ev) => setRateInput({ ...rateInput, [currency]: ev.target.value })}
+                />
+                <span className="unit">円</span>
+              </label>
+              <p className="muted">
+                為替レートは、このイベントの{CURRENCIES[currency].label}の項目すべてに使われます。初期値は目安なので、実際のレートに直してください。
+              </p>
+              <p className="calc">
+                {money(original, currency)} → 精算額 <strong>{yen(total)}</strong>
+              </p>
+            </>
+          )}
+        </>
       )}
 
       {kind === 'gasoline' && (
@@ -264,7 +380,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
           </label>
           <label>
             <input type="radio" checked={mode === 'ratio'} onChange={() => setMode('ratio')} />
-            比率指定
+            比率指定（%）
           </label>
           <label>
             <input type="radio" checked={mode === 'amount'} onChange={() => setMode('amount')} />
@@ -274,34 +390,72 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
         {mode === 'equal' && <p className="muted">全員で均等に割ります。</p>}
         {mode === 'ratio' && (
           <>
-            <p className="muted">比率が0の人は対象外になります。</p>
-            {members.map((m) => (
-              <label key={m.id} className="inline">
-                <span>{m.nickname}</span>
+            <div className="gauge" role="img" aria-label={`合計${percentSum}%`}>
+              {members.map((m, i) =>
+                (percents[m.id] ?? 0) > 0 ? (
+                  <div
+                    key={m.id}
+                    className="gauge-seg"
+                    style={{ width: `${percents[m.id]}%`, background: memberColor(i) }}
+                    title={`${m.nickname} ${percents[m.id]}%`}
+                  >
+                    {percents[m.id] >= 12 ? m.nickname : ''}
+                  </div>
+                ) : null,
+              )}
+            </div>
+            <div className="gauge-total">
+              <span className={percentSum === 100 ? 'ok' : 'ng'}>合計 {percentSum}% / 100%</span>
+              <button type="button" onClick={() => setPercents(equalPercents(ids))}>
+                均等にする
+              </button>
+            </div>
+            <p className="muted">合計は100%までです。0%の人は対象外になります。</p>
+            {members.map((m, i) => (
+              <div key={m.id} className="pct-row">
+                <span className="dot" style={{ background: memberColor(i) }} />
+                <span className="pct-name">{m.nickname}</span>
                 <input
-                  type="number"
-                  inputMode="decimal"
+                  type="range"
                   min="0"
-                  value={ratios[m.id]}
-                  onChange={(ev) => setRatios({ ...ratios, [m.id]: ev.target.value })}
+                  max="100"
+                  step="1"
+                  value={percents[m.id] ?? 0}
+                  onChange={(ev) => setPercent(m.id, Number(ev.target.value))}
+                  style={{ accentColor: memberColor(i) }}
+                  aria-label={`${m.nickname}の比率`}
                 />
-              </label>
-            ))}
-          </>
-        )}
-        {mode === 'amount' && (
-          <>
-            <p className="muted">項目金額 {yen(total)} と合計が一致するように入力してください。</p>
-            {members.map((m) => (
-              <label key={m.id} className="inline">
-                <span>{m.nickname}</span>
                 <input
                   type="number"
                   inputMode="numeric"
                   min="0"
+                  max="100"
+                  className="pct-input"
+                  value={percents[m.id] ?? 0}
+                  onChange={(ev) => setPercent(m.id, Number(ev.target.value))}
+                />
+                <span className="unit">%</span>
+                <span className="pct-yen">{yen(Math.round((total * (percents[m.id] ?? 0)) / 100))}</span>
+              </div>
+            ))}
+            <p className="muted">金額は目安です。実際は端数処理をしてから決まります。</p>
+          </>
+        )}
+        {mode === 'amount' && (
+          <>
+            <p className="muted">項目金額 {money(original, itemCur)} と合計が一致するように入力してください。</p>
+            {members.map((m) => (
+              <label key={m.id} className="inline">
+                <span>{m.nickname}</span>
+                <input
+                  type="number"
+                  inputMode={decimals > 0 ? 'decimal' : 'numeric'}
+                  min="0"
+                  step={decimals > 0 ? '0.01' : '1'}
                   value={amounts[m.id]}
                   onChange={(ev) => setAmounts({ ...amounts, [m.id]: ev.target.value })}
                 />
+                <span className="unit">{CURRENCIES[itemCur].unit}</span>
               </label>
             ))}
           </>
