@@ -7,6 +7,7 @@ import {
   gasolineDistance,
   itemAmount,
   itemOriginalAmount,
+  sortItemsNewestFirst,
   toPercents,
 } from '../calc';
 import {
@@ -14,6 +15,7 @@ import {
   ITEM_CATEGORIES,
   OTHER,
   itemLabel,
+  itemTitle,
   memberAvatar,
   money,
   newId,
@@ -36,6 +38,9 @@ type Props = {
 };
 
 const str = (n: number | undefined) => (n == null ? '' : String(n));
+
+const unique = (list: (string | undefined)[]): string[] =>
+  [...new Set(list.map((s) => s?.trim() ?? '').filter(Boolean))];
 
 // 種類の選択肢。通常項目はカテゴリ名、ガソリン・高速代は専用の値
 const GASOLINE = '__gasoline';
@@ -73,20 +78,31 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     (c) => c === 'JPY' || c === item?.currency || eventCurrencies(event).includes(c),
   );
 
+  // 手入力を減らすため、新しい項目は同じ種類の直近の項目から燃費・単価・車種などを引き継ぐ
+  const recent = sortItemsNewestFirst(event.items);
+  const lastGas = item ? undefined : recent.find((i) => i.kind === 'gasoline')?.gasoline;
+  const lastToll = item ? undefined : recent.find((i) => i.kind === 'etc')?.etc;
+  // 入力候補(一度入れた地名・IC・種類名)
+  const places = unique(event.items.flatMap((i) => [i.gasoline?.from, i.gasoline?.to]));
+  const ics = unique(event.items.flatMap((i) => [i.etc?.entryIc, i.etc?.exitIc]));
+  const customCategories = unique(
+    event.items.map((i) => (i.kind === 'normal' && !ITEM_CATEGORIES.includes(i.category ?? '') ? i.category : '')),
+  ).filter((c) => c !== OTHER);
+
   // ガソリン
   const g = item?.gasoline;
-  const [gMode, setGMode] = useState<'odometer' | 'distance' | 'map'>(g?.inputMode ?? 'map');
+  const [gMode, setGMode] = useState<'odometer' | 'distance' | 'map'>(g?.inputMode ?? lastGas?.inputMode ?? 'map');
   const [odoStart, setOdoStart] = useState(str(g?.odoStart));
   const [odoEnd, setOdoEnd] = useState(str(g?.odoEnd));
   const [distance, setDistance] = useState(str(g?.distanceKm));
   const [gFrom, setGFrom] = useState(g?.from ?? '');
   const [gTo, setGTo] = useState(g?.to ?? '');
-  const [roundTrip, setRoundTrip] = useState(g?.roundTrip ?? false);
-  const [economy, setEconomy] = useState(str(g?.fuelEconomy));
-  const [unitPrice, setUnitPrice] = useState(str(g?.unitPrice));
+  const [roundTrip, setRoundTrip] = useState(g?.roundTrip ?? lastGas?.roundTrip ?? false);
+  const [economy, setEconomy] = useState(str(g?.fuelEconomy ?? lastGas?.fuelEconomy));
+  const [unitPrice, setUnitPrice] = useState(str(g?.unitPrice ?? lastGas?.unitPrice));
 
   // 高速代
-  const e = item?.etc;
+  const e = item?.etc ?? (lastToll && { ...lastToll, amount: undefined, distanceKm: undefined, entryIc: '', exitIc: '', passedAt: '' });
   const [tollMode, setTollMode] = useState<'manual' | 'auto'>(e?.mode ?? 'manual');
   const [tollAmount, setTollAmount] = useState(str(e?.amount ?? e?.confirmed ?? e?.estimated));
   const [tollDistance, setTollDistance] = useState(str(e?.distanceKm));
@@ -202,7 +218,6 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
 
   const errors: string[] = [];
   if (!date) errors.push('日付を選んでください');
-  if (!name.trim()) errors.push('項目名を入力してください');
   if (kind === 'normal' && (toNum(amount) ?? 0) <= 0) errors.push('金額を入力してください');
   if (kind === 'gasoline') {
     if (gasolineDistance(preview.gasoline!) <= 0)
@@ -257,17 +272,15 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
             value={customCategory}
             onChange={(ev) => setCustomCategory(ev.target.value)}
             placeholder="例：お土産、レンタカー、チップ"
+            list="custom-categories"
           />
+          <datalist id="custom-categories">
+            {customCategories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
         </label>
       )}
-      <label>
-        項目名
-        <input
-          value={name}
-          onChange={(ev) => setName(ev.target.value)}
-          placeholder={kind === 'gasoline' ? '例：ガソリン代' : kind === 'etc' ? '例：往路の高速代' : '例：ホテル'}
-        />
-      </label>
       <div className="field">
         <span className="field-label">立て替え者</span>
         <div className="payer-chips" role="radiogroup" aria-label="立て替え者">
@@ -341,12 +354,22 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
             <>
               <label>
                 出発地
-                <input value={gFrom} onChange={(ev) => setGFrom(ev.target.value)} placeholder="例：東京駅" />
+                <input value={gFrom} onChange={(ev) => setGFrom(ev.target.value)} placeholder="例：東京駅" list="places" />
               </label>
               <label>
                 目的地
-                <input value={gTo} onChange={(ev) => setGTo(ev.target.value)} placeholder="例：箱根湯本駅" />
+                <input value={gTo} onChange={(ev) => setGTo(ev.target.value)} placeholder="例：箱根湯本駅" list="places" />
               </label>
+              <datalist id="places">
+                {places.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+              {gFrom.trim() && gTo.trim() && (
+                <button type="button" className="swap" onClick={() => { setGFrom(gTo); setGTo(gFrom); }}>
+                  ⇅ 出発地と目的地を入れ替え
+                </button>
+              )}
               <div className="route-actions">
                 <button
                   type="button"
@@ -434,12 +457,22 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
             <>
               <label>
                 入口IC
-                <input value={entryIc} onChange={(ev) => setEntryIc(ev.target.value)} placeholder="例：東京IC" />
+                <input value={entryIc} onChange={(ev) => setEntryIc(ev.target.value)} placeholder="例：東京IC" list="ics" />
               </label>
               <label>
                 出口IC
-                <input value={exitIc} onChange={(ev) => setExitIc(ev.target.value)} placeholder="例：御殿場IC" />
+                <input value={exitIc} onChange={(ev) => setExitIc(ev.target.value)} placeholder="例：御殿場IC" list="ics" />
               </label>
+              <datalist id="ics">
+                {ics.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+              {entryIc.trim() && exitIc.trim() && (
+                <button type="button" className="swap" onClick={() => { setEntryIc(exitIc); setExitIc(entryIc); }}>
+                  ⇅ 入口と出口を入れ替え（帰り道）
+                </button>
+              )}
               <div className="route-actions">
                 <button
                   type="button"
@@ -493,6 +526,15 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
           </label>
         </fieldset>
       )}
+
+      <label>
+        詳細（任意）
+        <input
+          value={name}
+          onChange={(ev) => setName(ev.target.value)}
+          placeholder={`空欄なら「${itemTitle({ ...preview, name: '' })}」`}
+        />
+      </label>
 
       <fieldset>
         <legend>負担の割り方</legend>

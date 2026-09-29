@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { eventRates, itemAmount, itemCurrency, itemOriginalAmount, sortItemsNewestFirst } from '../calc';
-import { formatDate, itemLabel, money, yen } from '../format';
+import { formatDate, itemLabel, itemTitle, money, yen } from '../format';
 import type { Item, WarikanEvent } from '../types';
 import ItemForm from './ItemForm';
 import MemberName from './MemberName';
@@ -67,8 +67,17 @@ export default function ItemsTab({ event, onChange, onSettle, onOpenSettings }: 
               {newDay && <li className="date-head">📅 {formatDate(item.date)}</li>}
               <li>
                 <div className="grow">
-                  <strong>{item.name}</strong>
-                  <span className="tag">{itemLabel(item)}</span>
+                  {item.name.trim() ? (
+                    <>
+                      <strong>{itemTitle(item)}</strong>
+                      <span className="tag">{itemLabel(item)}</span>
+                    </>
+                  ) : (
+                    // 詳細が空なら表示名が種類名と同じなので、ラベルは出さずアイコンだけ付ける
+                    <strong>
+                      {itemLabel(item).split(' ')[0]} {itemTitle(item)}
+                    </strong>
+                  )}
                   {item.kind === 'etc' && item.etc && (
                     <span className={`tag toll-${item.etc.mode === 'auto' ? 'auto' : 'manual'}`}>
                       {item.etc.mode === 'auto' ? '自動計算（目安）' : '手入力'}
@@ -89,7 +98,7 @@ export default function ItemsTab({ event, onChange, onSettle, onOpenSettings }: 
                 <button
                   className="danger"
                   onClick={() => {
-                    if (confirm(`「${item.name}」を削除しますか？`))
+                    if (confirm(`「${itemTitle(item)}」を削除しますか？`))
                       onChange({ ...event, items: event.items.filter((i) => i.id !== item.id) });
                   }}
                 >

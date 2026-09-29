@@ -9,7 +9,7 @@ import {
   sortItemsNewestFirst,
   summarize,
 } from '../calc';
-import { CURRENCIES, formatDate, itemLabel, memberAvatar, money, yen } from '../format';
+import { CURRENCIES, formatDate, itemLabel, itemTitle, memberAvatar, money, yen } from '../format';
 import type { Currency, WarikanEvent } from '../types';
 import MemberName from './MemberName';
 
@@ -162,7 +162,7 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
                 return (
                   <tr key={item.id}>
                     <td>
-                      {item.name}
+                      {itemTitle(item)}
                       <div className="muted">
                         {formatDate(item.date)} {itemLabel(item)}
                       </div>

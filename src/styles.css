@@ -694,3 +694,11 @@ table.final td.amount {
     display: none;
   }
 }
+
+button.swap {
+  min-height: 36px;
+  margin: -4px 0 12px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  color: var(--primary-dark);
+}
