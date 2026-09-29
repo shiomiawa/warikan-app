@@ -20,14 +20,17 @@ import {
   memberAvatar,
   money,
   newId,
+  normalizeNumber,
   roundTo,
   toNum,
   today,
   yen,
 } from '../format';
 import { googleMapsRouteUrl, routeDistance } from '../route';
-import { playCoinSound } from '../sound';
+import { amountKey, odometerWarning, rangeWarning } from '../checks';
+import { playBuzzer, playCoinSound } from '../sound';
 import type { AppSettings, Currency, GasolineMode, Item, ItemKind, Split, WarikanEvent } from '../types';
+import FieldWarning from './FieldWarning';
 import MemberName from './MemberName';
 import NumberInput from './NumberInput';
 
@@ -54,6 +57,13 @@ function initChoice(item: Item | null): string {
   if (item.kind === 'etc') return TOLL;
   return item.category && ITEM_CATEGORIES.includes(item.category) ? item.category : OTHER;
 }
+
+const SPLIT_LABELS: Record<Split['mode'], string> = { equal: '均等割り', ratio: '比率指定（%）', amount: '金額指定' };
+
+/** 入力を終えたとき(フォーカスが外れたとき)に、注意があれば「ぶっぶー」を鳴らす */
+const buzzOn = (check: (value: number | undefined) => string | null) => (ev: React.FocusEvent<HTMLInputElement>) => {
+  if (check(toNum(normalizeNumber(ev.currentTarget.value, true)))) playBuzzer();
+};
 
 const GAS_MODE_LABELS: Record<GasolineMode, string> = {
   map: '地図で距離を調べる',
@@ -128,9 +138,10 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
   const [routeMsg, setRouteMsg] = useState<RouteMsg | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // 負担の割り方
+  // 負担の割り方(普段は均等割りで、折りたたんでおく)
   const initSplit = item?.split;
   const [mode, setMode] = useState<Split['mode']>(initSplit?.mode ?? 'equal');
+  const [splitOpen, setSplitOpen] = useState(false);
   const [percents, setPercents] = useState<Record<string, number>>(() =>
     initSplit?.mode === 'ratio' ? toPercents(initSplit.ratios, ids) : equalPercents(ids),
   );
@@ -163,6 +174,7 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
       set(String(r.km));
       setRouteMsg({ target, text: `${r.from} → ${r.to}：片道 ${r.km}km（車のルート）` });
     } catch (err) {
+      playBuzzer();
       setRouteMsg({
         target,
         text: err instanceof Error ? err.message : '距離を調べられませんでした',
@@ -177,7 +189,9 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
   const calcToll = () =>
     findDistance('toll', entryIc, exitIc, (km) => {
       setTollDistance(km);
-      setTollAmount(String(tollEstimate(Number(km), vehicleClass, discount)));
+      const toll = tollEstimate(Number(km), vehicleClass, discount);
+      setTollAmount(String(toll));
+      if (rangeWarning('toll', toll)) playBuzzer();
     });
 
   /** 車種・割引を変えたら、計算済みの距離から高速代を計算し直す */
@@ -237,6 +251,14 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
           : undefined,
     };
   };
+
+  // 通常の値から大きく外れた入力の注意(保存は止めない)
+  const amountWarn = kind === 'normal' ? rangeWarning(amountKey(currency), toNum(amount)) : null;
+  const distanceWarn = rangeWarning('distance', toNum(distance));
+  const odometerWarn = odometerWarning(toNum(odoStart), toNum(odoEnd));
+  const economyWarn = rangeWarning('fuelEconomy', toNum(economy));
+  const unitPriceWarn = rangeWarning('unitPrice', toNum(unitPrice));
+  const tollWarn = rangeWarning('toll', toNum(tollAmount));
 
   const preview = build();
   const original = itemOriginalAmount(preview);
@@ -329,7 +351,7 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
           <div className="field">
             <span className="field-label">金額（{CURRENCIES[currency].unit}）</span>
             <div className="amount-row">
-              <NumberInput value={amount} onChange={setAmount} decimal={decimals > 0} placeholder="0" />
+              <NumberInput value={amount} onChange={setAmount} decimal={decimals > 0} placeholder="0" onBlur={buzzOn((v) => rangeWarning(amountKey(currency), v))} />
               {currencyOptions.length > 1 && (
               <div className="currency-switch" role="radiogroup" aria-label="通貨">
                 {currencyOptions.map((c) => (
@@ -347,6 +369,7 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
               </div>
               )}
             </div>
+            <FieldWarning message={amountWarn} />
           </div>
           {currency !== 'JPY' && (
             <p className="calc">
@@ -408,9 +431,10 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
               {routeNote('gas')}
               <label className="inline">
                 <span>片道の距離</span>
-                <NumberInput value={distance} onChange={setDistance} decimal />
+                <NumberInput value={distance} onChange={setDistance} decimal onBlur={buzzOn((v) => rangeWarning('distance', v))} />
                 <span className="unit">km</span>
               </label>
+              <FieldWarning message={distanceWarn} />
               <label className="check">
                 <input type="checkbox" checked={roundTrip} onChange={(ev) => setRoundTrip(ev.target.checked)} />
                 往復（距離を2倍にする）
@@ -420,34 +444,38 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
           {gMode === 'distance' && (
             <label className="inline">
               <span>走行距離</span>
-              <NumberInput value={distance} onChange={setDistance} decimal />
+              <NumberInput value={distance} onChange={setDistance} decimal onBlur={buzzOn((v) => rangeWarning('distance', v))} />
               <span className="unit">km</span>
             </label>
           )}
+          {gMode === 'distance' && <FieldWarning message={distanceWarn} />}
           {gMode === 'odometer' && (
             <>
               <label className="inline">
                 <span>出発時</span>
-                <NumberInput value={odoStart} onChange={setOdoStart} decimal />
+                <NumberInput value={odoStart} onChange={setOdoStart} decimal onBlur={buzzOn((v) => odometerWarning(v, toNum(odoEnd)))} />
                 <span className="unit">km</span>
               </label>
               <label className="inline">
                 <span>到着時</span>
-                <NumberInput value={odoEnd} onChange={setOdoEnd} decimal />
+                <NumberInput value={odoEnd} onChange={setOdoEnd} decimal onBlur={buzzOn((v) => odometerWarning(toNum(odoStart), v))} />
                 <span className="unit">km</span>
               </label>
+              <FieldWarning message={odometerWarn} />
             </>
           )}
           <label className="inline">
             <span>燃費</span>
-            <NumberInput value={economy} onChange={setEconomy} decimal />
+            <NumberInput value={economy} onChange={setEconomy} decimal onBlur={buzzOn((v) => rangeWarning('fuelEconomy', v))} />
             <span className="unit">km/L</span>
           </label>
+          <FieldWarning message={economyWarn} />
           <label className="inline">
             <span>ガソリン単価</span>
-            <NumberInput value={unitPrice} onChange={setUnitPrice} decimal />
+            <NumberInput value={unitPrice} onChange={setUnitPrice} decimal onBlur={buzzOn((v) => rangeWarning('unitPrice', v))} />
             <span className="unit">円/L</span>
           </label>
+          <FieldWarning message={unitPriceWarn} />
           <p className="calc">
             走行距離 {gasolineDistance(preview.gasoline!)}km ÷ 燃費 × 単価 ＝ <strong>{yen(total)}</strong>
           </p>
@@ -520,9 +548,10 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
           )}
           <label className="inline">
             <span>高速代</span>
-            <NumberInput value={tollAmount} onChange={setTollAmount} placeholder="0" />
+            <NumberInput value={tollAmount} onChange={setTollAmount} placeholder="0" onBlur={buzzOn((v) => rangeWarning('toll', v))} />
             <span className="unit">円</span>
           </label>
+          <FieldWarning message={tollWarn} />
           {tollMode === 'auto' && (
             <p className="muted">
               自動で計算した金額は、NEXCOの料金の計算式（距離・車種・長距離割引）による目安です。首都高などの都市高速や、一部の区間の特別料金は含みません。金額は直接直せます。
@@ -544,8 +573,11 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
         />
       </label>
 
-      <fieldset>
-        <legend>負担の割り方</legend>
+      <details className="split" open={splitOpen} onToggle={(ev) => setSplitOpen(ev.currentTarget.open)}>
+        <summary>
+          負担の割り方：<strong>{SPLIT_LABELS[mode]}</strong>
+          {!splitOpen && <span className="muted">（タップで変更）</span>}
+        </summary>
         <div className="radios">
           <label>
             <input type="radio" checked={mode === 'equal'} onChange={() => setMode('equal')} />
@@ -629,7 +661,7 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
             ))}
           </>
         )}
-      </fieldset>
+      </details>
 
       {errors.length > 0 && (
         <ul className="errors">

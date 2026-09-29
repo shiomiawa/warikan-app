@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { DEFAULT_RATES } from '../calc';
 import { CURRENCIES, toNum } from '../format';
 import type { AppSettings, Currency, GasolineMode } from '../types';
+import { rateKey, rangeWarning } from '../checks';
+import { playBuzzer } from '../sound';
+import FieldWarning from './FieldWarning';
 import NumberInput from './NumberInput';
 
 type Props = { settings: AppSettings; onChange: (s: AppSettings) => void };
@@ -53,9 +56,15 @@ export default function SettingsView({ settings, onChange }: Props) {
             </label>
             <label className="inline">
               <span>1{CURRENCIES[c].unit} ＝</span>
-              <NumberInput value={rateInput[c]} onChange={(v) => setRate(c, v)} decimal />
+              <NumberInput
+                value={rateInput[c]}
+                onChange={(v) => setRate(c, v)}
+                decimal
+                onBlur={(e) => rangeWarning(rateKey(c), toNum(e.currentTarget.value)) && playBuzzer()}
+              />
               <span className="unit">円</span>
             </label>
+            <FieldWarning message={rangeWarning(rateKey(c), toNum(rateInput[c]))} />
           </div>
         ))}
         <p className="muted">初期値（1ドル＝150円、1ウォン＝0.11円）は目安です。実際のレートに直してください。</p>

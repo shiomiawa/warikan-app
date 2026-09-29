@@ -910,3 +910,35 @@ button.more {
   font-size: 0.8rem;
   color: var(--muted) !important;
 }
+
+/* 通常と大きく外れた入力の注意 */
+.field-warning {
+  margin: -6px 0 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--warn-bg);
+  color: #8a5300;
+  font-size: 0.8rem;
+}
+
+/* 負担の割り方(折りたたみ) */
+details.split {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+details.split summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+details.split summary strong {
+  color: var(--primary-dark);
+}
+
+details.split[open] summary {
+  margin-bottom: 8px;
+}

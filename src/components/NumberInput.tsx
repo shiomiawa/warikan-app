@@ -11,7 +11,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 
  * 数字の入力欄。増減の矢印は出さず、全角で入力しても半角にそろえる。
  * スマートフォンでは数字のキーボードが開く。
  */
-export default function NumberInput({ value, onChange, decimal = false, ...rest }: Props) {
+export default function NumberInput({ value, onChange, decimal = false, onBlur, ...rest }: Props) {
   const normalize = (v: string) => normalizeNumber(v, decimal);
   return (
     <input
@@ -23,7 +23,10 @@ export default function NumberInput({ value, onChange, decimal = false, ...rest 
       // 日本語入力の変換中は触らず、確定したときに半角へそろえる
       onChange={(e) => onChange((e.nativeEvent as InputEvent).isComposing ? e.target.value : normalize(e.target.value))}
       onCompositionEnd={(e) => onChange(normalize(e.currentTarget.value))}
-      onBlur={(e) => onChange(normalize(e.currentTarget.value))}
+      onBlur={(e) => {
+        onChange(normalize(e.currentTarget.value));
+        onBlur?.(e);
+      }}
     />
   );
 }

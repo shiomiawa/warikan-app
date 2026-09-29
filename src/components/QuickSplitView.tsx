@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { quickSplit } from '../calc';
 import { toNum, yen } from '../format';
 import type { Rounding } from '../types';
+import { rangeWarning } from '../checks';
 import { withPaypayLink } from '../share';
+import { playBuzzer } from '../sound';
+import FieldWarning from './FieldWarning';
 import NumberInput from './NumberInput';
 import PaypayQr from './PaypayQr';
 import ShareButtons from './ShareButtons';
@@ -65,9 +68,16 @@ export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink 
 
         <label className="inline quick-total">
           <span>合計金額</span>
-          <NumberInput value={total} onChange={setTotal} placeholder="0" autoFocus />
+          <NumberInput
+            value={total}
+            onChange={setTotal}
+            placeholder="0"
+            autoFocus
+            onBlur={(e) => rangeWarning('quickTotal', toNum(e.currentTarget.value)) && playBuzzer()}
+          />
           <span className="unit">円</span>
         </label>
+        <FieldWarning message={rangeWarning('quickTotal', amount)} />
 
         <div className="stepper">
           <span className="field-label">端数処理</span>
