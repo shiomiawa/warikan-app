@@ -5,6 +5,7 @@ import type { Member, Rounding, WarikanEvent } from './types';
 import EventView from './components/EventView';
 import KindField from './components/KindField';
 import MembersEditor from './components/MembersEditor';
+import QuickSplitView from './components/QuickSplitView';
 import SettingsView from './components/SettingsView';
 
 const initialMembers = (): Member[] => [
@@ -22,6 +23,7 @@ export default function App() {
   const [formKey, setFormKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showQuick, setShowQuick] = useState(false);
 
   useEffect(() => saveData(data), [data]);
 
@@ -62,6 +64,8 @@ export default function App() {
     );
   }
 
+  if (showQuick) return <QuickSplitView onBack={() => setShowQuick(false)} />;
+
   if (showSettings) {
     return (
       <main>
@@ -90,6 +94,10 @@ export default function App() {
           ⚙️ 設定
         </button>
       </header>
+
+      <button className="quick-button" onClick={() => setShowQuick(true)}>
+        ⚡ クイック割り勘<span>イベントを作らず、その場で1回だけ</span>
+      </button>
 
       {/* イベントがあるときは作成フォームを畳んで、一覧をすぐ見られるようにする */}
       {showCreate || data.events.length === 0 ? (

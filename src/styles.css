@@ -765,3 +765,54 @@ button.swap {
 .new-event {
   margin: 0 0 12px;
 }
+
+/* クイック割り勘 */
+.quick-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font-size: 1.05rem;
+  text-align: left;
+}
+
+.quick-button span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.people-input {
+  width: 4em !important;
+  margin-top: 0 !important;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700 !important;
+}
+
+.quick-total input {
+  font-size: 1.3rem;
+  font-weight: 700 !important;
+  text-align: right;
+}
+
+.quick-result {
+  text-align: center;
+}
+
+.quick-amount {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--primary-dark);
+  line-height: 1.3;
+}
+
+.quick-organizer {
+  margin: 4px 0 0;
+}
