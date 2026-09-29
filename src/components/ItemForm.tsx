@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   amountSplitDiff,
   equalPercents,
+  eventCurrencies,
   eventRates,
   gasolineDistance,
   itemAmount,
@@ -23,14 +24,14 @@ import {
 } from '../format';
 import { googleMapsRouteUrl, routeDistance } from '../route';
 import { playCoinSound } from '../sound';
-import type { Currency, Item, ItemKind, Rates, Split, WarikanEvent } from '../types';
+import type { Currency, Item, ItemKind, Split, WarikanEvent } from '../types';
 import MemberName from './MemberName';
 import NumberInput from './NumberInput';
 
 type Props = {
   event: WarikanEvent;
   item: Item | null;
-  onSave: (item: Item, rates: Rates) => void;
+  onSave: (item: Item) => void;
   onCancel: () => void;
 };
 
@@ -66,8 +67,11 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   const [payerId, setPayerId] = useState(item?.payerId ?? members[0].id);
   const [currency, setCurrency] = useState<Currency>(item?.currency ?? 'JPY');
   const [amount, setAmount] = useState(item?.kind === 'normal' ? str(item.amount) : '');
-  const initRates = eventRates(event);
-  const [rateInput, setRateInput] = useState({ USD: str(initRates.USD), KRW: str(initRates.KRW) });
+  const rates = eventRates(event);
+  // 円と、設定で使うことにした外貨(編集中の項目の通貨は設定で外していても出す)
+  const currencyOptions = (Object.keys(CURRENCIES) as Currency[]).filter(
+    (c) => c === 'JPY' || c === item?.currency || eventCurrencies(event).includes(c),
+  );
 
   // ガソリン
   const g = item?.gasoline;
@@ -117,12 +121,6 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     const others = percentSum - (percents[id] ?? 0);
     const v = Math.max(0, Math.min(Math.round(value) || 0, 100 - others));
     setPercents({ ...percents, [id]: v });
-  };
-
-  const rates: Rates = {
-    ...initRates,
-    USD: toNum(rateInput.USD) ?? initRates.USD,
-    KRW: toNum(rateInput.KRW) ?? initRates.KRW,
   };
 
   const findDistance = async (target: RouteMsg['target'], from: string, to: string, set: (km: string) => void) => {
@@ -206,7 +204,6 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   if (!date) errors.push('日付を選んでください');
   if (!name.trim()) errors.push('項目名を入力してください');
   if (kind === 'normal' && (toNum(amount) ?? 0) <= 0) errors.push('金額を入力してください');
-  if (itemCur !== 'JPY' && (toNum(rateInput[itemCur]) ?? 0) <= 0) errors.push('為替レートを入力してください');
   if (kind === 'gasoline') {
     if (gasolineDistance(preview.gasoline!) <= 0)
       errors.push(gMode === 'map' ? '「距離を調べる」を押すか、距離を入力してください' : '走行距離を入力してください');
@@ -226,7 +223,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     ev.preventDefault();
     if (errors.length > 0) return;
     playCoinSound();
-    onSave(build(), rates);
+    onSave(build());
   };
 
   const routeNote = (target: RouteMsg['target']) =>
@@ -296,8 +293,9 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
             <span className="field-label">金額（{CURRENCIES[currency].unit}）</span>
             <div className="amount-row">
               <NumberInput value={amount} onChange={setAmount} decimal={decimals > 0} placeholder="0" />
+              {currencyOptions.length > 1 && (
               <div className="currency-switch" role="radiogroup" aria-label="通貨">
-                {(Object.keys(CURRENCIES) as Currency[]).map((c) => (
+                {currencyOptions.map((c) => (
                   <button
                     key={c}
                     type="button"
@@ -310,26 +308,14 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
                   </button>
                 ))}
               </div>
+              )}
             </div>
           </div>
           {currency !== 'JPY' && (
-            <>
-              <label className="inline">
-                <span>1{CURRENCIES[currency].unit} ＝</span>
-                <NumberInput
-                  value={rateInput[currency]}
-                  onChange={(v) => setRateInput({ ...rateInput, [currency]: v })}
-                  decimal
-                />
-                <span className="unit">円</span>
-              </label>
-              <p className="muted">
-                為替レートは、このイベントの{CURRENCIES[currency].label}の項目すべてに使われます。初期値は目安なので、実際のレートに直してください。
-              </p>
-              <p className="calc">
-                {money(original, currency)} → 精算額 <strong>{yen(total)}</strong>
-              </p>
-            </>
+            <p className="calc">
+              {money(original, currency)} → 精算額 <strong>{yen(total)}</strong>
+              <span className="muted">（1{CURRENCIES[currency].unit}＝{rates[currency]}円・レートは⚙️設定で変更）</span>
+            </p>
           )}
         </>
       )}

@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react';
-import { EVENT_KINDS, OTHER, eventIcon, newId } from './format';
+import { EVENT_KINDS, eventIcon, newId } from './format';
 import { loadData, saveData } from './storage';
-import type { Rounding, WarikanEvent } from './types';
+import type { Member, Rounding, WarikanEvent } from './types';
 import EventView from './components/EventView';
+import KindField from './components/KindField';
+import MembersEditor from './components/MembersEditor';
+
+const initialMembers = (): Member[] => [
+  { id: newId(), nickname: 'メンバー1', avatar: 0 },
+  { id: newId(), nickname: 'メンバー2', avatar: 1 },
+];
 
 export default function App() {
   const [data, setData] = useState(loadData);
   const [name, setName] = useState('');
-  const [kindChoice, setKindChoice] = useState(EVENT_KINDS[0]);
-  const [customKind, setCustomKind] = useState('');
+  const [kind, setKind] = useState(EVENT_KINDS[0]);
+  const [members, setMembers] = useState(initialMembers);
   const [rounding, setRounding] = useState<Rounding>(1);
+  // 作成後に種類の入力欄を初期状態に戻すためのキー
+  const [formKey, setFormKey] = useState(0);
 
   useEffect(() => saveData(data), [data]);
 
@@ -18,11 +27,19 @@ export default function App() {
   const createEvent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    const kind = kindChoice === OTHER ? customKind.trim() || OTHER : kindChoice;
-    const ev: WarikanEvent = { id: newId(), name: name.trim(), kind, rounding, members: [], items: [] };
+    const ev: WarikanEvent = {
+      id: newId(),
+      name: name.trim(),
+      kind,
+      rounding,
+      members: members.map((m, i) => ({ ...m, nickname: m.nickname.trim() || `メンバー${i + 1}` })),
+      items: [],
+    };
     setData({ events: [...data.events, ev], currentId: ev.id });
     setName('');
-    setCustomKind('');
+    setKind(EVENT_KINDS[0]);
+    setMembers(initialMembers());
+    setFormKey((k) => k + 1);
   };
 
   const updateEvent = (ev: WarikanEvent) =>
@@ -46,28 +63,16 @@ export default function App() {
       </header>
       <section className="card">
         <h2>イベントを作成</h2>
-        <form onSubmit={createEvent}>
+        <form onSubmit={createEvent} key={formKey}>
           <label>
             イベント名
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例：箱根旅行" />
           </label>
-          <label>
-            種類
-            <select value={kindChoice} onChange={(e) => setKindChoice(e.target.value)}>
-              {EVENT_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {eventIcon(k)} {k}
-                </option>
-              ))}
-              <option value={OTHER}>🎉 その他（自由入力）</option>
-            </select>
-          </label>
-          {kindChoice === OTHER && (
-            <label>
-              種類名
-              <input value={customKind} onChange={(e) => setCustomKind(e.target.value)} placeholder="例：卒業旅行、忘年会" />
-            </label>
-          )}
+          <KindField value={kind} onChange={setKind} />
+          <div className="field">
+            <span className="field-label">メンバー</span>
+            <MembersEditor members={members} onChange={setMembers} />
+          </div>
           <label>
             端数処理
             <select value={rounding} onChange={(e) => setRounding(Number(e.target.value) as Rounding)}>
@@ -76,6 +81,7 @@ export default function App() {
               <option value={100}>100円単位</option>
             </select>
           </label>
+          <p className="muted">メンバーや通貨は、あとから ⚙️ 設定で変えられます。</p>
           <button type="submit" className="primary wide" disabled={!name.trim()}>
             作成する
           </button>

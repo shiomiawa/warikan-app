@@ -528,9 +528,9 @@ table.final td.amount {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  border: 2px solid transparent;
   border-radius: 50%;
   line-height: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .avatar-sm {
@@ -559,29 +559,84 @@ table.final td.amount {
   white-space: nowrap;
 }
 
-.avatar-picker {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  margin-bottom: 10px;
+/* 設定・メンバー編集 */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.avatar-choice {
-  padding: 4px;
-  min-height: 48px;
-  border: 3px solid transparent;
-  border-radius: 14px;
-  background: #f5fafd;
+.icon-button {
+  min-width: 44px;
+  padding: 4px 8px;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
-.avatar-choice .avatar {
-  width: 36px;
-  height: 36px;
-  font-size: 22px;
+.settings-button {
+  font-size: 1.4rem;
 }
 
-.avatar-choice:disabled {
-  opacity: 0.2;
+.settings-button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.view-title {
+  margin: 8px 0 12px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.stepper .field-label {
+  margin: 0 4px 0 0;
+}
+
+.stepper button {
+  width: 44px;
+  padding: 0;
+  font-size: 1.3rem;
+}
+
+.stepper-value {
+  min-width: 3em;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.member-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member-rows li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.member-rows input {
+  flex: 1;
+  margin-top: 0 !important;
+  font-weight: 700;
+}
+
+.member-rows .icon-button {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.currency-setting {
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+  margin-top: 10px;
 }
 
 .field {

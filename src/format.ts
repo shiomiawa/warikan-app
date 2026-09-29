@@ -46,18 +46,21 @@ export function itemLabel(item: Item): string {
 
 export const MAX_MEMBERS = 10;
 
-/** メンバーのアバター(顔の絵文字と色)。文字色にも使うので白背景で読める濃さにしている */
+/**
+ * メンバーのアバター(動物の絵文字と色)。赤系は避け、見分けやすい落ち着いた色にしている。
+ * 文字色にも使うので、白い背景で読める濃さにしている。
+ */
 export const AVATARS = [
-  { emoji: '😀', color: '#dc2626' },
-  { emoji: '😎', color: '#ea580c' },
-  { emoji: '🥳', color: '#a16207' },
-  { emoji: '🤓', color: '#16a34a' },
-  { emoji: '😺', color: '#0d9488' },
-  { emoji: '🐶', color: '#0284c7' },
-  { emoji: '🦊', color: '#4f46e5' },
-  { emoji: '🐼', color: '#9333ea' },
-  { emoji: '🐸', color: '#db2777' },
-  { emoji: '🐵', color: '#475569' },
+  { emoji: '🐶', color: '#2e7d32' }, // 緑
+  { emoji: '🐱', color: '#1565c0' }, // 青
+  { emoji: '🐻', color: '#d9730d' }, // オレンジ
+  { emoji: '🐼', color: '#795548' }, // 茶
+  { emoji: '🦊', color: '#00796b' }, // 青緑
+  { emoji: '🐰', color: '#303f9f' }, // 紺
+  { emoji: '🐨', color: '#a67c00' }, // からし
+  { emoji: '🐸', color: '#5f7a1b' }, // オリーブ
+  { emoji: '🐵', color: '#546e7a' }, // 青灰
+  { emoji: '🐧', color: '#6a4c93' }, // 紫
 ];
 
 /** メンバーのアバター番号。古いデータで未設定なら並び順を使う */

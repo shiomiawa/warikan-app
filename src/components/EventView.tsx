@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { eventIcon } from '../format';
 import type { WarikanEvent } from '../types';
-import MembersTab from './MembersTab';
 import ItemsTab from './ItemsTab';
 import ResultTab from './ResultTab';
+import SettingsView from './SettingsView';
 
-type Tab = 'members' | 'items' | 'result';
+type View = 'items' | 'result' | 'settings';
 
 type Props = {
   event: WarikanEvent;
@@ -14,31 +14,68 @@ type Props = {
 };
 
 export default function EventView({ event, onChange, onBack }: Props) {
-  const [tab, setTab] = useState<Tab>(event.members.length < 2 ? 'members' : 'items');
+  const [view, setView] = useState<View>(event.members.length < 2 ? 'settings' : 'items');
+  const [lastTab, setLastTab] = useState<'items' | 'result'>('items');
+
+  const openSettings = () => setView('settings');
+  const closeSettings = () => setView(lastTab);
+  const openTab = (tab: 'items' | 'result') => {
+    setLastTab(tab);
+    setView(tab);
+  };
 
   return (
     <main>
-      <button className="link back" onClick={onBack}>
-        ← イベント一覧へ
-      </button>
+      <div className="topbar">
+        {view === 'settings' ? (
+          <button className="link back" onClick={closeSettings} disabled={event.members.length < 2}>
+            ← 戻る
+          </button>
+        ) : (
+          <button className="link back" onClick={onBack}>
+            ← イベント一覧へ
+          </button>
+        )}
+        <button
+          className={`icon-button settings-button${view === 'settings' ? ' active' : ''}`}
+          onClick={view === 'settings' ? closeSettings : openSettings}
+          aria-label="設定"
+          title="設定"
+        >
+          ⚙️
+        </button>
+      </div>
       <h1>
         {eventIcon(event.kind)} {event.name}
       </h1>
-      <p className="muted subtitle">{event.kind}</p>
-      <nav className="tabs">
-        <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>
-          メンバー
-        </button>
-        <button className={tab === 'items' ? 'active' : ''} onClick={() => setTab('items')}>
-          支払い項目
-        </button>
-        <button className={tab === 'result' ? 'active' : ''} onClick={() => setTab('result')}>
-          精算結果
-        </button>
-      </nav>
-      {tab === 'members' && <MembersTab event={event} onChange={onChange} onNext={() => setTab('items')} />}
-      {tab === 'items' && <ItemsTab event={event} onChange={onChange} onSettle={() => setTab('result')} />}
-      {tab === 'result' && <ResultTab event={event} />}
+      <p className="muted subtitle">
+        {event.kind}・{event.members.length}人
+      </p>
+
+      {view === 'settings' ? (
+        <>
+          <h2 className="view-title">⚙️ 設定</h2>
+          <SettingsView event={event} onChange={onChange} />
+          <button className="primary wide" onClick={closeSettings} disabled={event.members.length < 2}>
+            設定を閉じる
+          </button>
+        </>
+      ) : (
+        <>
+          <nav className="tabs">
+            <button className={view === 'items' ? 'active' : ''} onClick={() => openTab('items')}>
+              支払い項目
+            </button>
+            <button className={view === 'result' ? 'active' : ''} onClick={() => openTab('result')}>
+              精算結果
+            </button>
+          </nav>
+          {view === 'items' && (
+            <ItemsTab event={event} onChange={onChange} onSettle={() => openTab('result')} onOpenSettings={openSettings} />
+          )}
+          {view === 'result' && <ResultTab event={event} />}
+        </>
+      )}
     </main>
   );
 }

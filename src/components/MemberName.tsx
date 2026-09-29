@@ -3,10 +3,14 @@ import type { Member } from '../types';
 
 type AvatarProps = { avatar: (typeof AVATARS)[number]; size?: 'sm' | 'md' | 'lg' };
 
-/** 色つきの丸に顔の絵文字 */
+/** 淡い色の丸に動物の絵文字(枠線がメンバーの色) */
 export function Avatar({ avatar, size = 'md' }: AvatarProps) {
   return (
-    <span className={`avatar avatar-${size}`} style={{ background: avatar.color }} aria-hidden="true">
+    <span
+      className={`avatar avatar-${size}`}
+      style={{ background: `${avatar.color}1f`, borderColor: avatar.color }}
+      aria-hidden="true"
+    >
       {avatar.emoji}
     </span>
   );

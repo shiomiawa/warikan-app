@@ -5,11 +5,16 @@ import type { Item, WarikanEvent } from '../types';
 import ItemForm from './ItemForm';
 import MemberName from './MemberName';
 
-type Props = { event: WarikanEvent; onChange: (e: WarikanEvent) => void; onSettle: () => void };
+type Props = {
+  event: WarikanEvent;
+  onChange: (e: WarikanEvent) => void;
+  onSettle: () => void;
+  onOpenSettings: () => void;
+};
 
 const splitLabel = { equal: '均等割り', ratio: '比率指定', amount: '金額指定' } as const;
 
-export default function ItemsTab({ event, onChange, onSettle }: Props) {
+export default function ItemsTab({ event, onChange, onSettle, onOpenSettings }: Props) {
   // null=フォーム非表示、'new'=追加、Item=編集
   const [editing, setEditing] = useState<Item | 'new' | null>(null);
   const rates = eventRates(event);
@@ -18,7 +23,10 @@ export default function ItemsTab({ event, onChange, onSettle }: Props) {
   if (event.members.length < 2) {
     return (
       <section className="card">
-        <p className="muted">先にメンバーを2人以上登録してください。</p>
+        <p className="muted">先に設定でメンバーを2人以上登録してください。</p>
+        <button className="primary wide" onClick={onOpenSettings}>
+          ⚙️ 設定を開く
+        </button>
       </section>
     );
   }
@@ -29,11 +37,10 @@ export default function ItemsTab({ event, onChange, onSettle }: Props) {
         event={event}
         item={editing === 'new' ? null : editing}
         onCancel={() => setEditing(null)}
-        onSave={(item, newRates) => {
+        onSave={(item) => {
           const exists = event.items.some((i) => i.id === item.id);
           onChange({
             ...event,
-            rates: newRates,
             items: exists ? event.items.map((i) => (i.id === item.id ? item : i)) : [...event.items, item],
           });
           setEditing(null);
