@@ -3,13 +3,45 @@
 type AudioCtor = typeof AudioContext;
 let ctx: AudioContext | null = null;
 
+function audio(): AudioContext | null {
+  const Ctor: AudioCtor | undefined =
+    window.AudioContext ?? (window as unknown as { webkitAudioContext?: AudioCtor }).webkitAudioContext;
+  if (!Ctor) return null;
+  ctx ??= new Ctor();
+  if (ctx.state === 'suspended') void ctx.resume();
+  return ctx;
+}
+
+/** 入力が通常と大きく違うときの「ぶっぶー」という音(低いブザーを短く・長くの2回) */
+export function playBuzzer(): void {
+  try {
+    const ctx = audio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const buzz = (start: number, length: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 140;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.12, start + 0.01);
+      gain.gain.setValueAtTime(0.12, start + length - 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + length + 0.02);
+    };
+    buzz(now, 0.12); // ぶっ
+    buzz(now + 0.2, 0.45); // ぶー
+  } catch {
+    // 音が出せない環境では何もしない
+  }
+}
+
 export function playCoinSound(): void {
   try {
-    const Ctor: AudioCtor | undefined =
-      window.AudioContext ?? (window as unknown as { webkitAudioContext?: AudioCtor }).webkitAudioContext;
-    if (!Ctor) return;
-    ctx ??= new Ctor();
-    if (ctx.state === 'suspended') void ctx.resume();
+    const ctx = audio();
+    if (!ctx) return;
     const now = ctx.currentTime;
     const out = ctx.createGain();
     out.gain.value = 0.25;
