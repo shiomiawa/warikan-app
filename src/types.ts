@@ -76,6 +76,7 @@ export type AppSettings = {
   rates: Partial<Rates>; // 為替レート(1通貨単位あたりの円)
   currencies: Currency[]; // 使う外貨
   gasolineModes: Exclude<GasolineMode, 'map'>[]; // 地図のほかに使うガソリン代の距離の入れ方
+  paypayLink?: string; // 幹事のPayPay受け取りリンク(QRにして表示・共有文に添える)
 };
 
 export type Transfer ={ from: string; to: string; amount: number };

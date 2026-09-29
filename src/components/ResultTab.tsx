@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   eventRates,
   itemAmount,
@@ -11,11 +10,14 @@ import {
 } from '../calc';
 import { CURRENCIES, formatDate, itemLabel, itemTitle, memberAvatar, money, yen } from '../format';
 import type { Currency, WarikanEvent } from '../types';
+import { withPaypayLink } from '../share';
 import MemberName from './MemberName';
+import PaypayQr from './PaypayQr';
+import ShareButtons from './ShareButtons';
 
-export default function ResultTab({ event }: { event: WarikanEvent }) {
-  const [copied, setCopied] = useState(false);
-  const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
+type Props = { event: WarikanEvent; paypayLink: string; onChangePaypayLink: (link: string) => void };
+
+export default function ResultTab({ event, paypayLink, onChangePaypayLink }: Props) {  const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
 
   const rates = eventRates(event);
   const summary = summarize(event);
@@ -35,16 +37,7 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
     ...(rateNotes.length > 0 ? ['', `※換算レート：${rateNotes.join('、')}`] : []),
     ...(autoTolls.length > 0 ? ['※高速代に自動計算（目安）の項目があります'] : []),
   ].join('\n');
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      alert('コピーできませんでした。手動でコピーしてください。');
-    }
-  };
+  const shareText = transfers.length > 0 ? withPaypayLink(text, paypayLink) : text;
 
   if (event.items.length === 0) {
     return (
@@ -93,9 +86,8 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
           </div>
         )}
         {rateNotes.length > 0 && <p className="muted">換算レート：{rateNotes.join('、')}</p>}
-        <button className="primary wide" onClick={copy}>
-          {copied ? 'コピーしました' : '結果をテキストでコピー'}
-        </button>
+        {transfers.length > 0 && <PaypayQr link={paypayLink} onChange={onChangePaypayLink} />}
+        <ShareButtons text={shareText} />
       </section>
 
       <section className="card">

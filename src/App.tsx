@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react';
-import { EVENT_KINDS, eventIcon, newId } from './format';
+import { eventStartDate, sortEventsNewestFirst } from './calc';
+import { EVENT_KINDS, eventIcon, formatDate, newId } from './format';
 import { loadData, saveData } from './storage';
-import type { Member, Rounding, WarikanEvent } from './types';
+import type { AppSettings, Member, Rounding, WarikanEvent } from './types';
 import EventView from './components/EventView';
 import KindField from './components/KindField';
 import MembersEditor from './components/MembersEditor';
 import QuickSplitView from './components/QuickSplitView';
 import SettingsView from './components/SettingsView';
+
+const MAX_LISTED_EVENTS = 5;
+
+/** 一覧に出す日付。今年なら「10/3(土)」、それ以外は年も付ける */
+function eventDateLabel(date: string): string {
+  const year = date.slice(0, 4);
+  return year === String(new Date().getFullYear()) ? formatDate(date) : `${year}/${formatDate(date)}`;
+}
 
 const initialMembers = (): Member[] => [
   { id: newId(), nickname: 'メンバー1', avatar: 0 },
@@ -24,6 +33,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
+  const [showAllEvents, setShowAllEvents] = useState(false);
+  const sortedEvents = sortEventsNewestFirst(data.events);
 
   useEffect(() => saveData(data), [data]);
 
@@ -50,6 +61,7 @@ export default function App() {
 
   const updateEvent = (ev: WarikanEvent) =>
     setData((d) => ({ ...d, events: d.events.map((x) => (x.id === ev.id ? ev : x)) }));
+  const updateSettings = (settings: AppSettings) => setData((d) => ({ ...d, settings }));
 
   if (current) {
     // 通貨・レートはアプリ全体の設定を使う
@@ -59,12 +71,21 @@ export default function App() {
         event={withSettings}
         settings={data.settings}
         onChange={updateEvent}
+        onChangeSettings={updateSettings}
         onBack={() => setData({ ...data, currentId: null })}
       />
     );
   }
 
-  if (showQuick) return <QuickSplitView onBack={() => setShowQuick(false)} />;
+  if (showQuick) {
+    return (
+      <QuickSplitView
+        onBack={() => setShowQuick(false)}
+        paypayLink={data.settings.paypayLink ?? ''}
+        onChangePaypayLink={(paypayLink) => updateSettings({ ...data.settings, paypayLink })}
+      />
+    );
+  }
 
   if (showSettings) {
     return (
@@ -142,12 +163,15 @@ export default function App() {
         <section className="card">
           <h2>イベント一覧</h2>
           <ul className="list">
-            {data.events.map((ev) => (
+            {(showAllEvents ? sortedEvents : sortedEvents.slice(0, MAX_LISTED_EVENTS)).map((ev) => (
               <li key={ev.id}>
                 <div className="grow">
-                  <button className="link" onClick={() => setData({ ...data, currentId: ev.id })}>
-                    {eventIcon(ev.kind)} {ev.name}
-                  </button>
+                  <div className="event-title">
+                    <button className="link" onClick={() => setData({ ...data, currentId: ev.id })}>
+                      {eventIcon(ev.kind)} {ev.name}
+                    </button>
+                    {eventStartDate(ev) && <span className="event-date">{eventDateLabel(eventStartDate(ev)!)}</span>}
+                  </div>
                   <div className="muted">
                     {ev.kind}・{ev.members.length}人・{ev.items.length}項目
                   </div>
@@ -164,6 +188,11 @@ export default function App() {
               </li>
             ))}
           </ul>
+          {sortedEvents.length > MAX_LISTED_EVENTS && (
+            <button className="link more" onClick={() => setShowAllEvents(!showAllEvents)}>
+              {showAllEvents ? '新しい5件だけ表示' : `すべて表示（ほか${sortedEvents.length - MAX_LISTED_EVENTS}件）`}
+            </button>
+          )}
         </section>
       )}
     </main>

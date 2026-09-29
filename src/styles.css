@@ -816,3 +816,97 @@ button.swap {
 .quick-organizer {
   margin: 4px 0 0;
 }
+
+/* 仮の名前(メンバー1など)は薄く表示して、書き換えられることが分かるようにする */
+.member-rows input.default-name {
+  opacity: 0.45;
+  font-weight: 400 !important;
+}
+
+/* イベント一覧 */
+.event-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.event-date {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+button.more {
+  display: block;
+  margin: 8px auto 0;
+  font-size: 0.85rem;
+}
+
+/* 共有ボタン */
+.share-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.share.line {
+  background: #06c755;
+  border-color: #06c755;
+  color: #fff;
+}
+
+.share.sms {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* PayPayの受け取りQR */
+.paypay-open {
+  width: 100%;
+  margin-top: 12px;
+  color: var(--primary-dark);
+}
+
+.paypay {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+}
+
+.paypay-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.paypay-qr img {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.clear-link {
+  font-size: 0.8rem;
+  color: var(--muted) !important;
+}

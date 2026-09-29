@@ -12,6 +12,7 @@ type Props = {
 };
 
 const defaultName = (n: number) => `メンバー${n}`;
+const isDefaultName = (name: string) => /^メンバー\d+$/.test(name.trim());
 
 /** 人数の増減と、各メンバーの名前の変更。アバター(動物と色)は自動で割り当てる */
 export default function MembersEditor({ members, onChange, removeBlocker = () => null }: Props) {
@@ -63,6 +64,9 @@ export default function MembersEditor({ members, onChange, removeBlocker = () =>
             <Avatar avatar={memberAvatar(members, m.id)} size="sm" />
             <input
               value={m.nickname}
+              // 仮の名前(メンバー1など)は薄く表示し、タップしたら全選択してすぐ上書きできるようにする
+              className={isDefaultName(m.nickname) ? 'default-name' : undefined}
+              onFocus={(e) => isDefaultName(e.target.value) && e.target.select()}
               style={{ color: memberAvatar(members, m.id).color }}
               onChange={(e) => rename(m.id, e.target.value)}
               onBlur={(e) => {

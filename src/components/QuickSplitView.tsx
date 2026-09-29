@@ -2,18 +2,22 @@ import { useState } from 'react';
 import { quickSplit } from '../calc';
 import { toNum, yen } from '../format';
 import type { Rounding } from '../types';
+import { withPaypayLink } from '../share';
 import NumberInput from './NumberInput';
+import PaypayQr from './PaypayQr';
+import ShareButtons from './ShareButtons';
+
+type Props = { onBack: () => void; paypayLink: string; onChangePaypayLink: (link: string) => void };
 
 const MIN_PEOPLE = 2;
 const MAX_PEOPLE = 50;
 const ROUNDINGS: Rounding[] = [1, 10, 100];
 
 /** イベントを作らずに、その場で1回だけ割り勘する画面(保存しない) */
-export default function QuickSplitView({ onBack }: { onBack: () => void }) {
+export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink }: Props) {
   const [people, setPeople] = useState(2);
   const [total, setTotal] = useState('');
   const [rounding, setRounding] = useState<Rounding>(1);
-  const [copied, setCopied] = useState(false);
 
   const amount = toNum(total) ?? 0;
   const result = quickSplit(amount, people, rounding);
@@ -22,23 +26,13 @@ export default function QuickSplitView({ onBack }: { onBack: () => void }) {
   const setPeopleClamped = (n: number) => setPeople(Math.max(MIN_PEOPLE, Math.min(MAX_PEOPLE, n)));
 
   const text = result
-    ? [
+    ? withPaypayLink([
         `【割り勘】合計 ${yen(amount)}・${people}人`,
         same
           ? `1人あたり ${yen(result.perPerson)}`
           : `1人あたり ${yen(result.perPerson)}（幹事は ${yen(result.organizer)}）`,
-      ].join('\n')
+      ].join('\n'), paypayLink)
     : '';
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      alert('コピーできませんでした。手動でコピーしてください。');
-    }
-  };
 
   return (
     <main>
@@ -109,9 +103,10 @@ export default function QuickSplitView({ onBack }: { onBack: () => void }) {
         )}
         {!result && <p className="muted">合計金額を入れると計算します。</p>}
         {result && (
-          <button className="primary wide" onClick={copy}>
-            {copied ? 'コピーしました' : '結果をテキストでコピー'}
-          </button>
+          <>
+            <PaypayQr link={paypayLink} onChange={onChangePaypayLink} />
+            <ShareButtons text={text} />
+          </>
         )}
       </section>
     </main>

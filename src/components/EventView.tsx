@@ -11,10 +11,11 @@ type Props = {
   event: WarikanEvent;
   settings: AppSettings;
   onChange: (e: WarikanEvent) => void;
+  onChangeSettings: (s: AppSettings) => void;
   onBack: () => void;
 };
 
-export default function EventView({ event, settings, onChange, onBack }: Props) {
+export default function EventView({ event, settings, onChange, onChangeSettings, onBack }: Props) {
   const [view, setView] = useState<View>(event.members.length < 2 ? 'edit' : 'items');
   const [lastTab, setLastTab] = useState<'items' | 'result'>('items');
 
@@ -77,7 +78,13 @@ export default function EventView({ event, settings, onChange, onBack }: Props) 
               onOpenEdit={openEdit}
             />
           )}
-          {view === 'result' && <ResultTab event={event} />}
+          {view === 'result' && (
+            <ResultTab
+              event={event}
+              paypayLink={settings.paypayLink ?? ''}
+              onChangePaypayLink={(paypayLink) => onChangeSettings({ ...settings, paypayLink })}
+            />
+          )}
         </>
       )}
     </main>
