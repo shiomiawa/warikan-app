@@ -64,6 +64,7 @@ export type WarikanEvent = {
   kind: string;
   rounding: Rounding;
   rates?: Partial<Rates>;
+  currencies?: Currency[]; // 使う外貨(省略時は米ドル・韓国ウォンの両方)
   members: Member[];
   items: Item[];
 };

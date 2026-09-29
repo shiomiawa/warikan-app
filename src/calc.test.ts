@@ -10,6 +10,7 @@ import {
   summarize,
   toPercents,
   tollEstimate,
+  withMembers,
 } from './calc';
 import type { Item, Rounding, WarikanEvent } from './types';
 
@@ -91,6 +92,19 @@ describe('パーセント', () => {
     expect(toPercents({ A: 7, B: 3, C: 0 }, ['A', 'B', 'C'])).toEqual({ A: 70, B: 30, C: 0 });
     const p = toPercents({ A: 1, B: 1, C: 1 }, ['A', 'B', 'C']);
     expect(p.A + p.B + p.C).toBe(100);
+  });
+});
+
+describe('withMembers', () => {
+  it('いなくなったメンバーを比率・金額の指定から取り除く', () => {
+    const event = ev(1, [
+      normal('r', 1000, 'A', { mode: 'ratio', ratios: { A: 50, B: 30, C: 20 } }),
+      normal('m', 1000, 'A', { mode: 'amount', amounts: { A: 500, B: 300, C: 200 } }),
+    ]);
+    const next = withMembers(event, members.slice(0, 2));
+    expect(next.members.map((m) => m.id)).toEqual(['A', 'B']);
+    expect(next.items[0].split).toEqual({ mode: 'ratio', ratios: { A: 50, B: 30 } });
+    expect(next.items[1].split).toEqual({ mode: 'amount', amounts: { A: 500, B: 300 } });
   });
 });
 

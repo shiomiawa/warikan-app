@@ -7,6 +7,29 @@ export function eventRates(event: Pick<WarikanEvent, 'rates'>): Rates {
   return { ...DEFAULT_RATES, ...event.rates, JPY: 1 };
 }
 
+/** 項目の入力で選べる外貨 */
+export function eventCurrencies(event: Pick<WarikanEvent, 'currencies'>): Currency[] {
+  return event.currencies ?? ['USD', 'KRW'];
+}
+
+/**
+ * メンバーを入れ替えた後のイベント。いなくなったメンバーを負担設定(比率・金額)から取り除く。
+ * 立て替え者のメンバーは呼び出し側で削除できないようにしておくこと。
+ */
+export function withMembers(event: WarikanEvent, members: WarikanEvent['members']): WarikanEvent {
+  const ids = new Set(members.map((m) => m.id));
+  const keep = (r: Record<string, number>) => Object.fromEntries(Object.entries(r).filter(([id]) => ids.has(id)));
+  return {
+    ...event,
+    members,
+    items: event.items.map((i) => {
+      if (i.split.mode === 'ratio') return { ...i, split: { mode: 'ratio', ratios: keep(i.split.ratios) } };
+      if (i.split.mode === 'amount') return { ...i, split: { mode: 'amount', amounts: keep(i.split.amounts) } };
+      return i;
+    }),
+  };
+}
+
 export function gasolineDistance(g: Gasoline): number {
   if (g.inputMode === 'odometer') return Math.max(0, (g.odoEnd ?? 0) - (g.odoStart ?? 0));
   if (g.inputMode === 'map') return Math.max(0, (g.distanceKm ?? 0) * (g.roundTrip ? 2 : 1));
