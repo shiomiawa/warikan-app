@@ -9,6 +9,7 @@ import {
   sortItemsNewestFirst,
   summarize,
   toPercents,
+  tollEstimate,
 } from './calc';
 import type { Item, Rounding, WarikanEvent } from './types';
 
@@ -120,11 +121,40 @@ describe('itemAmount', () => {
     expect(itemAmount(item)).toBe(2550);
   });
 
-  it('ETC: 確定額があれば確定額、なければ概算額', () => {
-    const etc = { entryIc: '', exitIc: '', passedAt: '', vehicleClass: '普通車', discount: '' };
+  it('ガソリン: 地図の距離は往復なら2倍', () => {
+    const g = { inputMode: 'map' as const, distanceKm: 150, fuelEconomy: 10, unitPrice: 170 };
+    expect(itemAmount({ ...base, kind: 'gasoline', gasoline: g })).toBe(2550);
+    expect(itemAmount({ ...base, kind: 'gasoline', gasoline: { ...g, roundTrip: true } })).toBe(5100);
+  });
+
+  const etc = { entryIc: '', exitIc: '', passedAt: '', vehicleClass: '普通車', discount: 'なし' };
+
+  it('高速代(手入力): 入力した金額。旧データは確定額、なければ概算額', () => {
+    expect(itemAmount({ ...base, kind: 'etc', etc: { ...etc, mode: 'manual', amount: 1500 } })).toBe(1500);
     expect(itemAmount({ ...base, kind: 'etc', etc: { ...etc, estimated: 1000 } })).toBe(1000);
     expect(itemAmount({ ...base, kind: 'etc', etc: { ...etc, estimated: 1000, confirmed: 1200 } })).toBe(1200);
     expect(itemAmount({ ...base, kind: 'etc', etc })).toBe(0);
+  });
+
+  it('高速代(自動計算): 距離から料金式で計算する', () => {
+    expect(itemAmount({ ...base, kind: 'etc', etc: { ...etc, mode: 'auto', distanceKm: 100 } })).toBe(2871);
+  });
+});
+
+describe('tollEstimate', () => {
+  it('普通車100km: (150 + 24.6×100) × 1.1', () => {
+    expect(tollEstimate(100, '普通車', 'なし')).toBe(2871);
+  });
+
+  it('長距離は100km超で25%、200km超で30%安くなる', () => {
+    // 24.6 × (100 + 100×0.75 + 100×0.7) = 6027
+    expect(tollEstimate(300, '普通車', 'なし')).toBe(Math.round((150 + 6027) * 1.1));
+  });
+
+  it('車種と割引を反映する', () => {
+    expect(tollEstimate(100, '軽自動車等', 'なし')).toBe(Math.round(2610 * 0.8 * 1.1));
+    expect(tollEstimate(100, '普通車', '休日割引')).toBe(Math.round(2871 * 0.7));
+    expect(tollEstimate(0, '普通車', 'なし')).toBe(0);
   });
 });
 

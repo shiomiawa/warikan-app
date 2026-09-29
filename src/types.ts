@@ -10,22 +10,29 @@ export type Split =
   | { mode: 'amount'; amounts: Record<string, number> }; // memberId → 負担額(項目の通貨)
 
 export type Gasoline = {
-  inputMode: 'odometer' | 'distance';
+  inputMode: 'odometer' | 'distance' | 'map';
   odoStart?: number;
   odoEnd?: number;
-  distanceKm?: number;
+  distanceKm?: number; // 直接入力の距離。地図のときは片道の距離
+  from?: string; // 地図: 出発地
+  to?: string; // 地図: 目的地
+  roundTrip?: boolean; // 地図: 往復なら2倍
   fuelEconomy: number;
   unitPrice: number;
 };
 
+/** 高速代(画面では「高速代」、データ上は etc のまま) */
 export type Etc = {
+  mode?: 'manual' | 'auto'; // 手入力 / 自動計算(距離から料金式で計算)
+  amount?: number; // 手入力の金額
+  distanceKm?: number; // 自動計算に使う高速道路の距離
   entryIc: string;
   exitIc: string;
   passedAt: string;
   vehicleClass: string;
   discount: string;
-  estimated?: number;
-  confirmed?: number;
+  estimated?: number; // 旧データ(概算額)
+  confirmed?: number; // 旧データ(確定額)
 };
 
 export type ItemKind = 'normal' | 'gasoline' | 'etc';

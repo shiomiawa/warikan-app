@@ -1,7 +1,5 @@
 import type { Currency, Etc, Gasoline, Item, Rates, Transfer, WarikanEvent } from './types';
 
-export type EtcStatus = 'none' | 'estimated' | 'confirmed';
-
 /** 為替レートの初期値(目安)。1通貨単位あたりの円 */
 export const DEFAULT_RATES: Rates = { JPY: 1, USD: 150, KRW: 0.11 };
 
@@ -9,15 +7,34 @@ export function eventRates(event: Pick<WarikanEvent, 'rates'>): Rates {
   return { ...DEFAULT_RATES, ...event.rates, JPY: 1 };
 }
 
-export function etcStatus(etc: Etc): EtcStatus {
-  if (etc.confirmed != null) return 'confirmed';
-  if (etc.estimated != null) return 'estimated';
-  return 'none';
-}
-
 export function gasolineDistance(g: Gasoline): number {
   if (g.inputMode === 'odometer') return Math.max(0, (g.odoEnd ?? 0) - (g.odoStart ?? 0));
+  if (g.inputMode === 'map') return Math.max(0, (g.distanceKm ?? 0) * (g.roundTrip ? 2 : 1));
   return Math.max(0, g.distanceKm ?? 0);
+}
+
+const TOLL_CLASS_RATIO: Record<string, number> = { 軽自動車等: 0.8, 普通車: 1, 中型車: 1.2, 大型車: 1.65, 特大車: 2.75 };
+const TOLL_DISCOUNT: Record<string, number> = { 休日割引: 0.3, 深夜割引: 0.3 };
+
+/**
+ * NEXCO普通区間の料金式による高速代の目安(円)。
+ * (ターミナルチャージ150円 + 24.6円/km × 距離) × 車種比率 × 消費税1.1。
+ * 100km超〜200kmの部分は25%、200km超の部分は30%安くなる(長距離逓減)。
+ * 大都市近郊区間・首都高などの都市高速・特別料金区間は考慮しない。
+ */
+export function tollEstimate(distanceKm: number, vehicleClass: string, discount: string): number {
+  if (distanceKm <= 0) return 0;
+  const d1 = Math.min(distanceKm, 100);
+  const d2 = Math.min(Math.max(distanceKm - 100, 0), 100);
+  const d3 = Math.max(distanceKm - 200, 0);
+  const perKm = 24.6 * (d1 + d2 * 0.75 + d3 * 0.7);
+  const toll = (150 + perKm) * (TOLL_CLASS_RATIO[vehicleClass] ?? 1) * 1.1;
+  return Math.round(toll * (1 - (TOLL_DISCOUNT[discount] ?? 0)));
+}
+
+export function etcAmount(etc: Etc): number {
+  if (etc.mode === 'auto') return tollEstimate(etc.distanceKm ?? 0, etc.vehicleClass, etc.discount);
+  return etc.amount ?? etc.confirmed ?? etc.estimated ?? 0;
 }
 
 /** 項目の通貨。ガソリン・ETCは常に円 */
@@ -32,9 +49,7 @@ export function itemOriginalAmount(item: Item): number {
     if (g.fuelEconomy <= 0) return 0;
     return Math.round((gasolineDistance(g) / g.fuelEconomy) * g.unitPrice);
   }
-  if (item.kind === 'etc' && item.etc) {
-    return item.etc.confirmed ?? item.etc.estimated ?? 0;
-  }
+  if (item.kind === 'etc' && item.etc) return etcAmount(item.etc);
   return item.amount;
 }
 
