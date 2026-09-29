@@ -39,7 +39,7 @@ export const ITEM_CATEGORIES = Object.keys(ITEM_CATEGORY_ICONS);
 
 export function itemLabel(item: Item): string {
   if (item.kind === 'gasoline') return '⛽ ガソリン代';
-  if (item.kind === 'etc') return '🛣️ ETC';
+  if (item.kind === 'etc') return '🛣️ 高速代';
   const category = item.category ?? OTHER;
   return `${ITEM_CATEGORY_ICONS[category] ?? '✏️'} ${category}`;
 }
@@ -95,6 +95,20 @@ export const newId = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+/**
+ * 数字の入力を半角にそろえる。全角数字・全角ピリオドを半角にし、カンマや数字以外を取り除く。
+ * 小数を許すときは最初のピリオドだけ残す。
+ */
+export function normalizeNumber(s: string, allowDecimal: boolean): string {
+  const half = s
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/[．。]/g, '.');
+  const digits = half.replace(allowDecimal ? /[^0-9.]/g : /[^0-9]/g, '');
+  if (!allowDecimal) return digits;
+  const dot = digits.indexOf('.');
+  return dot < 0 ? digits : digits.slice(0, dot + 1) + digits.slice(dot + 1).replace(/\./g, '');
+}
 
 /** 入力欄の文字列を数値にする。空欄は undefined */
 export function toNum(s: string): number | undefined {
