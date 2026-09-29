@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { etcStatus, eventRates, itemAmount, itemCurrency, itemOriginalAmount, sortItemsNewestFirst } from '../calc';
+import { eventRates, itemAmount, itemCurrency, itemOriginalAmount, sortItemsNewestFirst } from '../calc';
 import { formatDate, itemLabel, money, yen } from '../format';
 import type { Item, WarikanEvent } from '../types';
 import ItemForm from './ItemForm';
@@ -7,7 +7,6 @@ import MemberName from './MemberName';
 
 type Props = { event: WarikanEvent; onChange: (e: WarikanEvent) => void; onSettle: () => void };
 
-const etcLabel = { none: '未入力', estimated: '概算', confirmed: '確定' } as const;
 const splitLabel = { equal: '均等割り', ratio: '比率指定', amount: '金額指定' } as const;
 
 export default function ItemsTab({ event, onChange, onSettle }: Props) {
@@ -64,7 +63,9 @@ export default function ItemsTab({ event, onChange, onSettle }: Props) {
                   <strong>{item.name}</strong>
                   <span className="tag">{itemLabel(item)}</span>
                   {item.kind === 'etc' && item.etc && (
-                    <span className={`tag etc-${etcStatus(item.etc)}`}>{etcLabel[etcStatus(item.etc)]}</span>
+                    <span className={`tag toll-${item.etc.mode === 'auto' ? 'auto' : 'manual'}`}>
+                      {item.etc.mode === 'auto' ? '自動計算（目安）' : '手入力'}
+                    </span>
                   )}
                   <div className="item-meta">
                     <MemberName members={event.members} id={item.payerId} />

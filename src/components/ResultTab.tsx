@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  etcStatus,
   eventRates,
   itemAmount,
   itemCurrency,
@@ -21,7 +20,7 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
   const rates = eventRates(event);
   const summary = summarize(event);
   const transfers = settle(Object.fromEntries(Object.entries(summary).map(([id, s]) => [id, s.balance])));
-  const pendingEtc = event.items.filter((i) => i.kind === 'etc' && i.etc && etcStatus(i.etc) !== 'confirmed');
+  const autoTolls = event.items.filter((i) => i.kind === 'etc' && i.etc?.mode === 'auto');
   const usedCurrencies = [...new Set(event.items.map(itemCurrency))].filter((c): c is Exclude<Currency, 'JPY'> => c !== 'JPY');
   const rateNotes = usedCurrencies.map((c) => `1${CURRENCIES[c].unit}＝${rates[c]}円`);
   const total = event.items.reduce((a, i) => a + itemAmount(i, rates), 0);
@@ -34,7 +33,7 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
       ? ['精算は不要です']
       : transfers.map((t) => `${nick(t.from)} → ${nick(t.to)}：${yen(t.amount)}`)),
     ...(rateNotes.length > 0 ? ['', `※換算レート：${rateNotes.join('、')}`] : []),
-    ...(pendingEtc.length > 0 ? ['※ETCに概算・未入力の項目があります'] : []),
+    ...(autoTolls.length > 0 ? ['※高速代に自動計算（目安）の項目があります'] : []),
   ].join('\n');
 
   const copy = async () => {
@@ -60,8 +59,8 @@ export default function ResultTab({ event }: { event: WarikanEvent }) {
       <section className="card highlight">
         <h2>💸 最終的な精算表</h2>
         <p className="muted">この表のとおりに送金すれば、全員の精算が終わります（送金回数が最少になる組み合わせ）。</p>
-        {pendingEtc.length > 0 && (
-          <p className="warn">ETCに未確定（概算・未入力）の項目があります。確定すると金額が変わる場合があります。</p>
+        {autoTolls.length > 0 && (
+          <p className="warn">高速代に自動計算（目安）の項目があります。実際の料金と少し違う場合があります。</p>
         )}
         {transfers.length === 0 ? (
           <p className="done">🎉 精算は不要です</p>

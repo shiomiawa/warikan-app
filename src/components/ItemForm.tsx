@@ -21,8 +21,11 @@ import {
   today,
   yen,
 } from '../format';
+import { googleMapsRouteUrl, routeDistance } from '../route';
+import { playCoinSound } from '../sound';
 import type { Currency, Item, ItemKind, Rates, Split, WarikanEvent } from '../types';
 import MemberName from './MemberName';
+import NumberInput from './NumberInput';
 
 type Props = {
   event: WarikanEvent;
@@ -33,18 +36,18 @@ type Props = {
 
 const str = (n: number | undefined) => (n == null ? '' : String(n));
 
-const DORAPLA_URL = 'https://www.driveplaza.com/';
-
-// 種類の選択肢。通常項目はカテゴリ名、ガソリン・ETCは専用の値
+// 種類の選択肢。通常項目はカテゴリ名、ガソリン・高速代は専用の値
 const GASOLINE = '__gasoline';
-const ETC = '__etc';
+const TOLL = '__etc';
 
 function initChoice(item: Item | null): string {
   if (!item) return ITEM_CATEGORIES[0];
   if (item.kind === 'gasoline') return GASOLINE;
-  if (item.kind === 'etc') return ETC;
+  if (item.kind === 'etc') return TOLL;
   return item.category && ITEM_CATEGORIES.includes(item.category) ? item.category : OTHER;
 }
+
+type RouteMsg = { target: 'gas' | 'toll'; text: string; error?: boolean };
 
 export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   const { members } = event;
@@ -55,7 +58,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
       ? item.category
       : '',
   );
-  const kind: ItemKind = choice === GASOLINE ? 'gasoline' : choice === ETC ? 'etc' : 'normal';
+  const kind: ItemKind = choice === GASOLINE ? 'gasoline' : choice === TOLL ? 'etc' : 'normal';
 
   const [date, setDate] = useState(item ? (item.date ?? '') : today());
   const [name, setName] = useState(item?.name ?? '');
@@ -68,22 +71,30 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
 
   // ガソリン
   const g = item?.gasoline;
-  const [gMode, setGMode] = useState<'odometer' | 'distance'>(g?.inputMode ?? 'distance');
+  const [gMode, setGMode] = useState<'odometer' | 'distance' | 'map'>(g?.inputMode ?? 'map');
   const [odoStart, setOdoStart] = useState(str(g?.odoStart));
   const [odoEnd, setOdoEnd] = useState(str(g?.odoEnd));
   const [distance, setDistance] = useState(str(g?.distanceKm));
+  const [gFrom, setGFrom] = useState(g?.from ?? '');
+  const [gTo, setGTo] = useState(g?.to ?? '');
+  const [roundTrip, setRoundTrip] = useState(g?.roundTrip ?? false);
   const [economy, setEconomy] = useState(str(g?.fuelEconomy));
   const [unitPrice, setUnitPrice] = useState(str(g?.unitPrice));
 
-  // ETC
+  // 高速代
   const e = item?.etc;
+  const [tollMode, setTollMode] = useState<'manual' | 'auto'>(e?.mode ?? 'manual');
+  const [tollAmount, setTollAmount] = useState(str(e?.amount ?? e?.confirmed ?? e?.estimated));
+  const [tollDistance, setTollDistance] = useState(str(e?.distanceKm));
   const [entryIc, setEntryIc] = useState(e?.entryIc ?? '');
   const [exitIc, setExitIc] = useState(e?.exitIc ?? '');
   const [passedAt, setPassedAt] = useState(e?.passedAt ?? '');
   const [vehicleClass, setVehicleClass] = useState(e?.vehicleClass ?? '普通車');
   const [discount, setDiscount] = useState(e?.discount ?? 'なし');
-  const [estimated, setEstimated] = useState(str(e?.estimated));
-  const [confirmed, setConfirmed] = useState(str(e?.confirmed));
+
+  // 地図から距離を調べる
+  const [routeMsg, setRouteMsg] = useState<RouteMsg | null>(null);
+  const [busy, setBusy] = useState(false);
 
   // 負担の割り方
   const initSplit = item?.split;
@@ -114,6 +125,28 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
     KRW: toNum(rateInput.KRW) ?? initRates.KRW,
   };
 
+  const findDistance = async (target: RouteMsg['target'], from: string, to: string, set: (km: string) => void) => {
+    if (!from.trim() || !to.trim()) {
+      setRouteMsg({ target, text: '出発地と目的地の両方を入力してください', error: true });
+      return;
+    }
+    setBusy(true);
+    setRouteMsg({ target, text: '距離を調べています…' });
+    try {
+      const r = await routeDistance(from, to);
+      set(String(r.km));
+      setRouteMsg({ target, text: `${r.from} → ${r.to}：片道 ${r.km}km（車のルート）` });
+    } catch (err) {
+      setRouteMsg({
+        target,
+        text: err instanceof Error ? err.message : '距離を調べられませんでした',
+        error: true,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const build = (): Item => {
     const split: Split =
       mode === 'equal'
@@ -141,6 +174,9 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
               odoStart: toNum(odoStart),
               odoEnd: toNum(odoEnd),
               distanceKm: toNum(distance),
+              from: gFrom.trim() || undefined,
+              to: gTo.trim() || undefined,
+              roundTrip,
               fuelEconomy: toNum(economy) ?? 0,
               unitPrice: toNum(unitPrice) ?? 0,
             }
@@ -148,13 +184,14 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
       etc:
         kind === 'etc'
           ? {
+              mode: tollMode,
+              amount: tollMode === 'manual' ? toNum(tollAmount) : undefined,
+              distanceKm: toNum(tollDistance),
               entryIc,
               exitIc,
               passedAt,
               vehicleClass,
               discount,
-              estimated: toNum(estimated),
-              confirmed: toNum(confirmed),
             }
           : undefined,
     };
@@ -171,9 +208,15 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
   if (kind === 'normal' && (toNum(amount) ?? 0) <= 0) errors.push('金額を入力してください');
   if (itemCur !== 'JPY' && (toNum(rateInput[itemCur]) ?? 0) <= 0) errors.push('為替レートを入力してください');
   if (kind === 'gasoline') {
-    if (gasolineDistance(preview.gasoline!) <= 0) errors.push('走行距離を入力してください');
+    if (gasolineDistance(preview.gasoline!) <= 0)
+      errors.push(gMode === 'map' ? '「距離を調べる」を押すか、距離を入力してください' : '走行距離を入力してください');
     if ((toNum(economy) ?? 0) <= 0) errors.push('燃費を入力してください');
     if ((toNum(unitPrice) ?? 0) <= 0) errors.push('ガソリン単価を入力してください');
+  }
+  if (kind === 'etc') {
+    if (tollMode === 'manual' && (toNum(tollAmount) ?? 0) <= 0) errors.push('高速代を入力してください');
+    if (tollMode === 'auto' && (toNum(tollDistance) ?? 0) <= 0)
+      errors.push('「距離を調べる」を押すか、高速道路の距離を入力してください');
   }
   if (mode === 'ratio' && percentSum !== 100) errors.push(`比率の合計を100%にしてください（残り${100 - percentSum}%）`);
   if (mode === 'amount' && diff !== 0)
@@ -181,8 +224,13 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
 
   const submit = (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (errors.length === 0) onSave(build(), rates);
+    if (errors.length > 0) return;
+    playCoinSound();
+    onSave(build(), rates);
   };
+
+  const routeNote = (target: RouteMsg['target']) =>
+    routeMsg?.target === target && <p className={routeMsg.error ? 'route-error' : 'muted'}>{routeMsg.text}</p>;
 
   return (
     <form className="card" onSubmit={submit}>
@@ -201,7 +249,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
             </option>
           ))}
           <option value={GASOLINE}>⛽ ガソリン代</option>
-          <option value={ETC}>🛣️ ETC</option>
+          <option value={TOLL}>🛣️ 高速代</option>
           <option value={OTHER}>✏️ その他（自由入力）</option>
         </select>
       </label>
@@ -220,7 +268,7 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
         <input
           value={name}
           onChange={(ev) => setName(ev.target.value)}
-          placeholder={kind === 'gasoline' ? '例：ガソリン代' : kind === 'etc' ? '例：往路ETC' : '例：ホテル'}
+          placeholder={kind === 'gasoline' ? '例：ガソリン代' : kind === 'etc' ? '例：往路の高速代' : '例：ホテル'}
         />
       </label>
       <div className="field">
@@ -244,38 +292,34 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
 
       {kind === 'normal' && (
         <>
-          <label>
-            通貨
-            <select value={currency} onChange={(ev) => setCurrency(ev.target.value as Currency)}>
-              {(Object.keys(CURRENCIES) as Currency[]).map((c) => (
-                <option key={c} value={c}>
-                  {CURRENCIES[c].label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            金額（{CURRENCIES[currency].unit}）
-            <input
-              type="number"
-              inputMode={decimals > 0 ? 'decimal' : 'numeric'}
-              min="0"
-              step={decimals > 0 ? '0.01' : '1'}
-              value={amount}
-              onChange={(ev) => setAmount(ev.target.value)}
-            />
-          </label>
+          <div className="field">
+            <span className="field-label">金額（{CURRENCIES[currency].unit}）</span>
+            <div className="amount-row">
+              <NumberInput value={amount} onChange={setAmount} decimal={decimals > 0} placeholder="0" />
+              <div className="currency-switch" role="radiogroup" aria-label="通貨">
+                {(Object.keys(CURRENCIES) as Currency[]).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={currency === c}
+                    className={currency === c ? 'on' : ''}
+                    onClick={() => setCurrency(c)}
+                  >
+                    {CURRENCIES[c].unit}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           {currency !== 'JPY' && (
             <>
               <label className="inline">
                 <span>1{CURRENCIES[currency].unit} ＝</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="any"
+                <NumberInput
                   value={rateInput[currency]}
-                  onChange={(ev) => setRateInput({ ...rateInput, [currency]: ev.target.value })}
+                  onChange={(v) => setRateInput({ ...rateInput, [currency]: v })}
+                  decimal
                 />
                 <span className="unit">円</span>
               </label>
@@ -295,6 +339,10 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
           <legend>ガソリン代</legend>
           <div className="radios">
             <label>
+              <input type="radio" checked={gMode === 'map'} onChange={() => setGMode('map')} />
+              地図で距離を調べる
+            </label>
+            <label>
               <input type="radio" checked={gMode === 'distance'} onChange={() => setGMode('distance')} />
               距離を直接入力
             </label>
@@ -303,30 +351,73 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
               オドメーターから計算
             </label>
           </div>
-          {gMode === 'distance' ? (
-            <label>
-              走行距離（km）
-              <input type="number" inputMode="decimal" min="0" value={distance} onChange={(ev) => setDistance(ev.target.value)} />
-            </label>
-          ) : (
+          {gMode === 'map' && (
             <>
               <label>
-                出発時のオドメーター（km）
-                <input type="number" inputMode="decimal" min="0" value={odoStart} onChange={(ev) => setOdoStart(ev.target.value)} />
+                出発地
+                <input value={gFrom} onChange={(ev) => setGFrom(ev.target.value)} placeholder="例：東京駅" />
               </label>
               <label>
-                到着時のオドメーター（km）
-                <input type="number" inputMode="decimal" min="0" value={odoEnd} onChange={(ev) => setOdoEnd(ev.target.value)} />
+                目的地
+                <input value={gTo} onChange={(ev) => setGTo(ev.target.value)} placeholder="例：箱根湯本駅" />
+              </label>
+              <div className="route-actions">
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => findDistance('gas', gFrom, gTo, setDistance)}
+                >
+                  🗺️ 距離を調べる
+                </button>
+                {gFrom.trim() && gTo.trim() && (
+                  <a href={googleMapsRouteUrl(gFrom, gTo)} target="_blank" rel="noreferrer">
+                    Googleマップで確認
+                  </a>
+                )}
+              </div>
+              {routeNote('gas')}
+              <label className="inline">
+                <span>片道の距離</span>
+                <NumberInput value={distance} onChange={setDistance} decimal />
+                <span className="unit">km</span>
+              </label>
+              <label className="check">
+                <input type="checkbox" checked={roundTrip} onChange={(ev) => setRoundTrip(ev.target.checked)} />
+                往復（距離を2倍にする）
               </label>
             </>
           )}
-          <label>
-            燃費（km/L）
-            <input type="number" inputMode="decimal" min="0" step="0.1" value={economy} onChange={(ev) => setEconomy(ev.target.value)} />
+          {gMode === 'distance' && (
+            <label className="inline">
+              <span>走行距離</span>
+              <NumberInput value={distance} onChange={setDistance} decimal />
+              <span className="unit">km</span>
+            </label>
+          )}
+          {gMode === 'odometer' && (
+            <>
+              <label className="inline">
+                <span>出発時</span>
+                <NumberInput value={odoStart} onChange={setOdoStart} decimal />
+                <span className="unit">km</span>
+              </label>
+              <label className="inline">
+                <span>到着時</span>
+                <NumberInput value={odoEnd} onChange={setOdoEnd} decimal />
+                <span className="unit">km</span>
+              </label>
+            </>
+          )}
+          <label className="inline">
+            <span>燃費</span>
+            <NumberInput value={economy} onChange={setEconomy} decimal />
+            <span className="unit">km/L</span>
           </label>
-          <label>
-            ガソリン単価（円/L）
-            <input type="number" inputMode="decimal" min="0" value={unitPrice} onChange={(ev) => setUnitPrice(ev.target.value)} />
+          <label className="inline">
+            <span>ガソリン単価</span>
+            <NumberInput value={unitPrice} onChange={setUnitPrice} decimal />
+            <span className="unit">円/L</span>
           </label>
           <p className="calc">
             走行距離 {gasolineDistance(preview.gasoline!)}km ÷ 燃費 × 単価 ＝ <strong>{yen(total)}</strong>
@@ -336,56 +427,84 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
 
       {kind === 'etc' && (
         <fieldset>
-          <legend>ETC</legend>
+          <legend>高速代</legend>
+          <div className="radios">
+            <label>
+              <input type="radio" checked={tollMode === 'manual'} onChange={() => setTollMode('manual')} />
+              手入力
+            </label>
+            <label>
+              <input type="radio" checked={tollMode === 'auto'} onChange={() => setTollMode('auto')} />
+              自動計算
+            </label>
+          </div>
+          {tollMode === 'manual' ? (
+            <label className="inline">
+              <span>高速代</span>
+              <NumberInput value={tollAmount} onChange={setTollAmount} placeholder="0" />
+              <span className="unit">円</span>
+            </label>
+          ) : (
+            <>
+              <label>
+                入口IC
+                <input value={entryIc} onChange={(ev) => setEntryIc(ev.target.value)} placeholder="例：東京IC" />
+              </label>
+              <label>
+                出口IC
+                <input value={exitIc} onChange={(ev) => setExitIc(ev.target.value)} placeholder="例：御殿場IC" />
+              </label>
+              <div className="route-actions">
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => findDistance('toll', entryIc, exitIc, setTollDistance)}
+                >
+                  🗺️ 距離を調べる
+                </button>
+                {entryIc.trim() && exitIc.trim() && (
+                  <a href={googleMapsRouteUrl(entryIc, exitIc)} target="_blank" rel="noreferrer">
+                    Googleマップで確認
+                  </a>
+                )}
+              </div>
+              {routeNote('toll')}
+              <label className="inline">
+                <span>高速道路の距離</span>
+                <NumberInput value={tollDistance} onChange={setTollDistance} decimal />
+                <span className="unit">km</span>
+              </label>
+              <label>
+                車種区分
+                <select value={vehicleClass} onChange={(ev) => setVehicleClass(ev.target.value)}>
+                  <option>軽自動車等</option>
+                  <option>普通車</option>
+                  <option>中型車</option>
+                  <option>大型車</option>
+                  <option>特大車</option>
+                </select>
+              </label>
+              <label>
+                割引
+                <select value={discount} onChange={(ev) => setDiscount(ev.target.value)}>
+                  <option>なし</option>
+                  <option value="休日割引">休日割引（30%引き）</option>
+                  <option value="深夜割引">深夜割引（30%引き）</option>
+                </select>
+              </label>
+              <p className="calc">
+                自動計算の高速代：<strong>{yen(total)}</strong>
+              </p>
+              <p className="muted">
+                NEXCOの料金の計算式（距離・車種・長距離割引）で出した目安です。首都高などの都市高速や、一部の区間の特別料金は含みません。
+              </p>
+            </>
+          )}
           <label>
-            入口IC
-            <input value={entryIc} onChange={(ev) => setEntryIc(ev.target.value)} />
-          </label>
-          <label>
-            出口IC
-            <input value={exitIc} onChange={(ev) => setExitIc(ev.target.value)} />
-          </label>
-          <label>
-            通過日時
+            通過日時（任意）
             <input type="datetime-local" value={passedAt} onChange={(ev) => setPassedAt(ev.target.value)} />
           </label>
-          <label>
-            車種区分
-            <select value={vehicleClass} onChange={(ev) => setVehicleClass(ev.target.value)}>
-              <option>軽自動車等</option>
-              <option>普通車</option>
-              <option>中型車</option>
-              <option>大型車</option>
-              <option>特大車</option>
-            </select>
-          </label>
-          <label>
-            適用割引
-            <select value={discount} onChange={(ev) => setDiscount(ev.target.value)}>
-              <option>なし</option>
-              <option>深夜割引</option>
-              <option>休日割引</option>
-              <option>その他</option>
-            </select>
-          </label>
-          <label>
-            概算額（円）
-            <input type="number" inputMode="numeric" min="0" value={estimated} onChange={(ev) => setEstimated(ev.target.value)} />
-          </label>
-          <p className="muted">
-            概算額は{' '}
-            <a href={DORAPLA_URL} target="_blank" rel="noreferrer">
-              NEXCOの料金検索（ドラぷら）
-            </a>{' '}
-            で調べられます。
-          </p>
-          <label>
-            確定額（円）
-            <input type="number" inputMode="numeric" min="0" value={confirmed} onChange={(ev) => setConfirmed(ev.target.value)} />
-          </label>
-          <p className="calc">
-            精算に使う金額：<strong>{yen(total)}</strong>（確定額があれば確定額、なければ概算額）
-          </p>
         </fieldset>
       )}
 
@@ -444,14 +563,10 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
                   style={{ accentColor: color(m.id) }}
                   aria-label={`${m.nickname}の比率`}
                 />
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="100"
+                <NumberInput
                   className="pct-input"
-                  value={percents[m.id] ?? 0}
-                  onChange={(ev) => setPercent(m.id, Number(ev.target.value))}
+                  value={String(percents[m.id] ?? 0)}
+                  onChange={(v) => setPercent(m.id, Number(v))}
                 />
                 <span className="unit">%</span>
                 <span className="pct-yen">{yen(Math.round((total * (percents[m.id] ?? 0)) / 100))}</span>
@@ -468,13 +583,10 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
                 <span>
                   <MemberName members={members} id={m.id} />
                 </span>
-                <input
-                  type="number"
-                  inputMode={decimals > 0 ? 'decimal' : 'numeric'}
-                  min="0"
-                  step={decimals > 0 ? '0.01' : '1'}
+                <NumberInput
                   value={amounts[m.id]}
-                  onChange={(ev) => setAmounts({ ...amounts, [m.id]: ev.target.value })}
+                  onChange={(v) => setAmounts({ ...amounts, [m.id]: v })}
+                  decimal={decimals > 0}
                 />
                 <span className="unit">{CURRENCIES[itemCur].unit}</span>
               </label>
@@ -498,6 +610,9 @@ export default function ItemForm({ event, item, onSave, onCancel }: Props) {
           保存
         </button>
       </div>
+      {((kind === 'gasoline' && gMode === 'map') || (kind === 'etc' && tollMode === 'auto')) && (
+        <p className="attribution">地図の距離: © OpenStreetMap contributors / OSRM</p>
+      )}
     </form>
   );
 }

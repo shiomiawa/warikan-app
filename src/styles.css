@@ -278,19 +278,76 @@ legend {
   font-size: 0.75rem;
 }
 
-.tag.etc-none {
-  background: #eceff1;
-  color: #37474f;
-}
-
-.tag.etc-estimated {
+.tag.toll-auto {
   background: #fff3e0;
   color: #b84a00;
 }
 
-.tag.etc-confirmed {
+.tag.toll-manual {
   background: #e3f6ea;
   color: #1b5e20;
+}
+
+/* 金額と通貨の切り替え */
+.amount-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.amount-row input {
+  flex: 1;
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.currency-switch {
+  display: flex;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.currency-switch button {
+  min-height: 36px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.currency-switch button.on {
+  background: var(--primary);
+  color: #fff;
+}
+
+.route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.route-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+
+.attribution {
+  margin: 12px 0 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-align: right;
 }
 
 .calc {
