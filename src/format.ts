@@ -44,6 +44,25 @@ export function itemLabel(item: Item): string {
   return `${ITEM_CATEGORY_ICONS[category] ?? '✏️'} ${category}`;
 }
 
+/**
+ * 項目の表示名。詳細が空なら種類から自動で付ける。
+ * ガソリン代・高速代は、分かっていれば区間も添える(例: ガソリン代（東京駅→箱根湯本駅 往復）)。
+ */
+export function itemTitle(item: Item): string {
+  if (item.name.trim()) return item.name.trim();
+  if (item.kind === 'gasoline') {
+    const g = item.gasoline;
+    const route = g?.inputMode === 'map' && g.from && g.to ? `${g.from}→${g.to}${g.roundTrip ? ' 往復' : ''}` : '';
+    return route ? `ガソリン代（${route}）` : 'ガソリン代';
+  }
+  if (item.kind === 'etc') {
+    const e = item.etc;
+    const route = e?.mode === 'auto' && e.entryIc && e.exitIc ? `${e.entryIc}→${e.exitIc}` : '';
+    return route ? `高速代（${route}）` : '高速代';
+  }
+  return item.category ?? OTHER;
+}
+
 export const MAX_MEMBERS = 10;
 
 /**
