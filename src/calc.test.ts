@@ -6,6 +6,7 @@ import {
   itemAmount,
   itemShares,
   settle,
+  sortItemsNewestFirst,
   summarize,
   toPercents,
 } from './calc';
@@ -89,6 +90,20 @@ describe('パーセント', () => {
     expect(toPercents({ A: 7, B: 3, C: 0 }, ['A', 'B', 'C'])).toEqual({ A: 70, B: 30, C: 0 });
     const p = toPercents({ A: 1, B: 1, C: 1 }, ['A', 'B', 'C']);
     expect(p.A + p.B + p.C).toBe(100);
+  });
+});
+
+describe('並べ替え', () => {
+  it('新しい日付が上、同じ日は後から追加した順、日付なしは一番下', () => {
+    const item = (id: string, date?: string): Item => ({ ...normal(id, 100, 'A', { mode: 'equal' }), date });
+    const sorted = sortItemsNewestFirst([
+      item('old', '2026-10-01'),
+      item('none'),
+      item('new', '2026-10-03'),
+      item('mid1', '2026-10-02'),
+      item('mid2', '2026-10-02'),
+    ]);
+    expect(sorted.map((i) => i.id)).toEqual(['new', 'mid2', 'mid1', 'old', 'none']);
   });
 });
 

@@ -147,6 +147,19 @@ export function balances(event: WarikanEvent): Record<string, number> {
   return Object.fromEntries(Object.entries(summarize(event)).map(([id, s]) => [id, s.balance]));
 }
 
+/** 支払い項目を新しい日付順に並べる。同じ日は後から追加したものが上、日付なしは一番下 */
+export function sortItemsNewestFirst(items: Item[]): Item[] {
+  return items
+    .map((item, order) => ({ item, order }))
+    .sort((a, b) => {
+      const da = a.item.date ?? '';
+      const db = b.item.date ?? '';
+      if (da !== db) return da < db ? 1 : -1;
+      return b.order - a.order;
+    })
+    .map((x) => x.item);
+}
+
 /** 受け取る人と払う人を大きい順に組み合わせ、送金回数が少なくなるように相殺する */
 export function settle(bal: Record<string, number>): Transfer[] {
   const creditors = Object.entries(bal).filter(([, v]) => v > 0).map(([id, v]) => ({ id, v }));

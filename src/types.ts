@@ -1,4 +1,8 @@
-export type Member = { id: string; nickname: string };
+export type Member = {
+  id: string;
+  nickname: string;
+  avatar?: number; // アバター(顔の絵文字と色)の番号。未設定なら並び順
+};
 
 export type Split =
   | { mode: 'equal' }
@@ -36,6 +40,7 @@ export type Item = {
   name: string;
   kind: ItemKind;
   category?: string; // 通常項目の種類(食事・宿泊・自由入力など)
+  date?: string; // 支払った日(YYYY-MM-DD)
   payerId: string;
   currency?: Currency; // 通常項目の通貨(省略時は円)
   amount: number; // 通常項目の金額(currency の単位。ガソリン・ETCは計算で決まる)
