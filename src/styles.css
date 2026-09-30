@@ -768,24 +768,16 @@ button.swap {
 
 /* クイック割り勘 */
 .quick-button {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: block;
   width: 100%;
   margin-bottom: 12px;
   padding: 10px 16px;
-  border: 2px solid var(--accent);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--text);
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
   font-size: 1.05rem;
-  text-align: left;
-}
-
-.quick-button span {
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 400;
+  font-weight: 800;
 }
 
 .people-input {

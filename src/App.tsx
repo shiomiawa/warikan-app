@@ -117,7 +117,7 @@ export default function App() {
       </header>
 
       <button className="quick-button" onClick={() => setShowQuick(true)}>
-        ⚡ クイック割り勘<span>イベントを作らず、その場で1回だけ</span>
+        ⚡ クイック割り勘
       </button>
 
       {/* イベントがあるときは作成フォームを畳んで、一覧をすぐ見られるようにする */}
