@@ -33,6 +33,7 @@ import type { AppSettings, Currency, GasolineMode, Item, ItemKind, Split, Warika
 import FieldWarning from './FieldWarning';
 import MemberName from './MemberName';
 import NumberInput from './NumberInput';
+import SplitEditor, { percentTotal } from './SplitEditor';
 
 type Props = {
   event: WarikanEvent;
@@ -57,8 +58,6 @@ function initChoice(item: Item | null): string {
   if (item.kind === 'etc') return TOLL;
   return item.category && ITEM_CATEGORIES.includes(item.category) ? item.category : OTHER;
 }
-
-const SPLIT_LABELS: Record<Split['mode'], string> = { equal: '均等割り', ratio: '比率指定（%）', amount: '金額指定' };
 
 /** 入力を終えたとき(フォーカスが外れたとき)に、注意があれば「ぶっぶー」を鳴らす */
 const buzzOn = (check: (value: number | undefined) => string | null) => (ev: React.FocusEvent<HTMLInputElement>) => {
@@ -141,7 +140,6 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
   // 負担の割り方(普段は均等割りで、折りたたんでおく)
   const initSplit = item?.split;
   const [mode, setMode] = useState<Split['mode']>(initSplit?.mode ?? 'equal');
-  const [splitOpen, setSplitOpen] = useState(false);
   const [percents, setPercents] = useState<Record<string, number>>(() =>
     initSplit?.mode === 'ratio' ? toPercents(initSplit.ratios, ids) : equalPercents(ids),
   );
@@ -153,14 +151,8 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
 
   const itemCur: Currency = kind === 'normal' ? currency : 'JPY';
   const decimals = CURRENCIES[itemCur].decimals;
-  const percentSum = ids.reduce((a, id) => a + (percents[id] ?? 0), 0);
+  const percentSum = percentTotal(percents, ids);
 
-  /** 合計が100%を超えないように、1人の%を設定する */
-  const setPercent = (id: string, value: number) => {
-    const others = percentSum - (percents[id] ?? 0);
-    const v = Math.max(0, Math.min(Math.round(value) || 0, 100 - others));
-    setPercents({ ...percents, [id]: v });
-  };
 
   const findDistance = async (target: RouteMsg['target'], from: string, to: string, set: (km: string) => void) => {
     if (!from.trim() || !to.trim()) {
@@ -586,95 +578,19 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
         />
       </label>
 
-      <details className="split" open={splitOpen} onToggle={(ev) => setSplitOpen(ev.currentTarget.open)}>
-        <summary>
-          負担の割り方：<strong>{SPLIT_LABELS[mode]}</strong>
-          {!splitOpen && <span className="muted">（タップで変更）</span>}
-        </summary>
-        <div className="radios">
-          <label>
-            <input type="radio" checked={mode === 'equal'} onChange={() => setMode('equal')} />
-            均等割り
-          </label>
-          <label>
-            <input type="radio" checked={mode === 'ratio'} onChange={() => setMode('ratio')} />
-            比率指定（%）
-          </label>
-          <label>
-            <input type="radio" checked={mode === 'amount'} onChange={() => setMode('amount')} />
-            金額指定
-          </label>
-        </div>
-        {mode === 'equal' && <p className="muted">全員で均等に割ります。</p>}
-        {mode === 'ratio' && (
-          <>
-            <div className="gauge" role="img" aria-label={`合計${percentSum}%`}>
-              {members.map((m) =>
-                (percents[m.id] ?? 0) > 0 ? (
-                  <div
-                    key={m.id}
-                    className="gauge-seg"
-                    style={{ width: `${percents[m.id]}%`, background: color(m.id) }}
-                    title={`${m.nickname} ${percents[m.id]}%`}
-                  >
-                    {percents[m.id] >= 6 ? memberAvatar(members, m.id).emoji : ''}
-                  </div>
-                ) : null,
-              )}
-            </div>
-            <div className="gauge-total">
-              <span className={percentSum === 100 ? 'ok' : 'ng'}>合計 {percentSum}% / 100%</span>
-              <button type="button" onClick={() => setPercents(equalPercents(ids))}>
-                均等にする
-              </button>
-            </div>
-            <p className="muted">合計は100%までです。0%の人は対象外になります。</p>
-            {members.map((m) => (
-              <div key={m.id} className="pct-row">
-                <span className="pct-name">
-                  <MemberName members={members} id={m.id} />
-                </span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={percents[m.id] ?? 0}
-                  onChange={(ev) => setPercent(m.id, Number(ev.target.value))}
-                  style={{ accentColor: color(m.id) }}
-                  aria-label={`${m.nickname}の比率`}
-                />
-                <NumberInput
-                  className="pct-input"
-                  value={String(percents[m.id] ?? 0)}
-                  onChange={(v) => setPercent(m.id, Number(v))}
-                />
-                <span className="unit">%</span>
-                <span className="pct-yen">{yen(Math.round((total * (percents[m.id] ?? 0)) / 100))}</span>
-              </div>
-            ))}
-            <p className="muted">金額は目安です。実際は端数処理をしてから決まります。</p>
-          </>
-        )}
-        {mode === 'amount' && (
-          <>
-            <p className="muted">項目金額 {money(original, itemCur)} と合計が一致するように入力してください。</p>
-            {members.map((m) => (
-              <label key={m.id} className="inline">
-                <span>
-                  <MemberName members={members} id={m.id} />
-                </span>
-                <NumberInput
-                  value={amounts[m.id]}
-                  onChange={(v) => setAmounts({ ...amounts, [m.id]: v })}
-                  decimal={decimals > 0}
-                />
-                <span className="unit">{CURRENCIES[itemCur].unit}</span>
-              </label>
-            ))}
-          </>
-        )}
-      </details>
+      <SplitEditor
+        members={members}
+        mode={mode}
+        onModeChange={setMode}
+        percents={percents}
+        onPercentsChange={setPercents}
+        amounts={amounts}
+        onAmountsChange={setAmounts}
+        totalYen={total}
+        totalLabel={money(original, itemCur)}
+        unit={CURRENCIES[itemCur].unit}
+        decimal={decimals > 0}
+      />
 
       {errors.length > 0 && (
         <ul className="errors">
