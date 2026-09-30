@@ -950,3 +950,27 @@ details.split summary strong {
 details.split[open] summary {
   margin-bottom: 8px;
 }
+
+/* 人数の −＋ 用の大きいボタン指定が、同じ行の端数処理の切り替えボタンにかからないようにする */
+.stepper .currency-switch button {
+  width: auto;
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+}
+
+.quick-shares {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  text-align: left;
+}
+
+.quick-shares li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  border-top: 1px dashed var(--border);
+  font-size: 1.05rem;
+}
