@@ -11,6 +11,7 @@ import {
   sortEventsNewestFirst,
   sortItemsNewestFirst,
   summarize,
+  tierPercents,
   toPercents,
   tollEstimate,
   withMembers,
@@ -166,6 +167,19 @@ describe('並べ替え', () => {
       item('mid2', '2026-10-02'),
     ]);
     expect(sorted.map((i) => i.id)).toEqual(['new', 'mid2', 'mid1', 'old', 'none']);
+  });
+});
+
+describe('tierPercents', () => {
+  it('多め1.5・ふつう1・少なめ0.5・なし0 の比で合計100%にする', () => {
+    expect(tierPercents({ A: 'more', B: 'normal', C: 'less' }, ['A', 'B', 'C'])).toEqual({ A: 50, B: 33, C: 17 });
+    expect(tierPercents({ A: 'more', B: 'none' }, ['A', 'B'])).toEqual({ A: 100, B: 0 });
+  });
+
+  it('指定がなければふつう(均等)', () => {
+    const p = tierPercents({}, ['A', 'B', 'C']);
+    expect(p.A + p.B + p.C).toBe(100);
+    expect(Math.max(p.A, p.B, p.C) - Math.min(p.A, p.B, p.C)).toBeLessThanOrEqual(1);
   });
 });
 

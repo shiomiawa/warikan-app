@@ -117,6 +117,22 @@ export function toPercents(ratios: Record<string, number>, ids: string[]): Recor
   return result;
 }
 
+/** ワンタップ傾斜の段階と重み(ふつうを1とした比) */
+export const TIERS = [
+  { key: 'more', label: '多め', weight: 1.5 },
+  { key: 'normal', label: 'ふつう', weight: 1 },
+  { key: 'less', label: '少なめ', weight: 0.5 },
+  { key: 'none', label: 'なし', weight: 0 },
+] as const;
+
+export type Tier = (typeof TIERS)[number]['key'];
+
+/** 各人の段階から、合計100%のパーセントを決める */
+export function tierPercents(tiers: Record<string, Tier>, ids: string[]): Record<string, number> {
+  const weight = (id: string) => TIERS.find((t) => t.key === (tiers[id] ?? 'normal'))!.weight;
+  return toPercents(Object.fromEntries(ids.map((id) => [id, weight(id)])), ids);
+}
+
 /**
  * 項目ごとの各人の負担額(円)。合計は必ず項目金額(円)と一致する。
  * 立て替え者以外は端数処理の単位で切り上げ、余りは立て替え者が負担する。
