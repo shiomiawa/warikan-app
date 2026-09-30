@@ -12,6 +12,30 @@ function audio(): AudioContext | null {
   return ctx;
 }
 
+/**
+ * ブラウザはタップ・クリック・キー入力の操作中にしか音を出し始めさせないため、
+ * 最初の操作のときに音の準備をしておく。入力欄から離れたとき(操作ではない)でも鳴らせるようになる。
+ */
+export function unlockAudioOnFirstInteraction(): void {
+  const events = ['pointerdown', 'touchend', 'keydown'] as const;
+  const unlock = () => {
+    try {
+      const ctx = audio();
+      if (!ctx) return;
+      // iPhoneは無音を一度再生すると、その後の音が鳴るようになる
+      const source = ctx.createBufferSource();
+      source.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      source.connect(ctx.destination);
+      source.start();
+      if (ctx.state !== 'running') return; // まだ準備できていなければ次の操作で再試行
+    } catch {
+      return;
+    }
+    for (const e of events) window.removeEventListener(e, unlock, true);
+  };
+  for (const e of events) window.addEventListener(e, unlock, true);
+}
+
 /** 入力が通常と大きく違うときの「ぶっぶー」という音(低いブザーを短く・長くの2回) */
 export function playBuzzer(): void {
   try {
