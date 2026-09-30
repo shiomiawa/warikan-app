@@ -47,7 +47,7 @@ export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink 
       <h1>⚡ クイック割り勘</h1>
       <p className="muted subtitle">その場で1回だけ割り勘します（保存はしません）</p>
 
-      <section className="card">
+      <section className="card quick-form">
         <div className="stepper">
           <span className="field-label">合計人数</span>
           <button type="button" aria-label="1人減らす" disabled={people <= MIN_PEOPLE} onClick={() => setPeopleClamped(people - 1)}>

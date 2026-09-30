@@ -325,7 +325,8 @@ legend {
 
 .currency-switch button {
   min-height: 36px;
-  padding: 4px 10px;
+  padding: 4px 12px;
+  white-space: nowrap;
   border: none;
   border-radius: 0;
   font-size: 0.8rem;
@@ -788,10 +789,25 @@ button.swap {
   font-weight: 700 !important;
 }
 
+/* 合計金額は金額に見合った長さにする(横幅いっぱいに広げない) */
 .quick-total input {
+  flex: 0 1 11em;
+  width: 11em !important;
+  min-width: 0;
   font-size: 1.3rem;
   font-weight: 700 !important;
   text-align: right;
+}
+
+/* クイック割り勘の3行(人数・金額・端数処理)の項目名の幅をそろえる */
+.quick-form .field-label,
+.quick-form label.inline span:first-child {
+  flex: 0 0 5.5em;
+  margin: 0;
+}
+
+.quick-form .currency-switch {
+  flex-shrink: 0;
 }
 
 .quick-result {
