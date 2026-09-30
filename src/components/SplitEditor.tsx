@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { equalPercents } from '../calc';
+import { TIERS, equalPercents, tierPercents, type Tier } from '../calc';
 import { memberAvatar, yen } from '../format';
 import type { Member, Split } from '../types';
 import MemberName from './MemberName';
@@ -45,11 +45,22 @@ export default function SplitEditor({
   const sum = percentTotal(percents, ids);
   const color = (id: string) => memberAvatar(members, id).color;
 
+  // ワンタップ傾斜で選んだ段階。%を手で動かしたら選択を外す(null)
+  const [tiers, setTiers] = useState<Record<string, Tier> | null>(null);
+
   /** 合計が100%を超えないように、1人の%を設定する */
   const setPercent = (id: string, value: number) => {
     const others = sum - (percents[id] ?? 0);
     const v = Math.max(0, Math.min(Math.round(value) || 0, 100 - others));
+    setTiers(null);
     onPercentsChange({ ...percents, [id]: v });
+  };
+
+  /** 1人の段階(多め・ふつう・少なめ・なし)を選び、全員の%を決め直す */
+  const setTier = (id: string, tier: Tier) => {
+    const next = { ...Object.fromEntries(ids.map((x) => [x, 'normal' as Tier])), ...tiers, [id]: tier };
+    setTiers(next);
+    onPercentsChange(tierPercents(next, ids));
   };
 
   return (
@@ -85,16 +96,37 @@ export default function SplitEditor({
           </div>
           <div className="gauge-total">
             <span className={sum === 100 ? 'ok' : 'ng'}>合計 {sum}% / 100%</span>
-            <button type="button" onClick={() => onPercentsChange(equalPercents(ids))}>
+            <button
+              type="button"
+              onClick={() => {
+                setTiers(null);
+                onPercentsChange(equalPercents(ids));
+              }}
+            >
               均等にする
             </button>
           </div>
-          <p className="muted">合計は100%までです。0%の人は対象外になります。</p>
+          <p className="muted">「多め・ふつう・少なめ・なし」をタップすると%が自動で決まります。細かくはスライダーで調整できます（合計100%まで）。</p>
           {members.map((m) => (
-            <div key={m.id} className="pct-row">
-              <span className="pct-name">
+            <div key={m.id} className="pct-block">
+              <div className="pct-head">
                 <MemberName members={members} id={m.id} />
-              </span>
+                <div className="tier-chips" role="radiogroup" aria-label={`${m.nickname}の負担`}>
+                  {TIERS.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={tiers?.[m.id] === t.key}
+                      className={tiers?.[m.id] === t.key ? 'on' : ''}
+                      onClick={() => setTier(m.id, t.key)}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            <div className="pct-row">
               <input
                 type="range"
                 min="0"
@@ -112,6 +144,7 @@ export default function SplitEditor({
               />
               <span className="unit">%</span>
               <span className="pct-yen">{yen(Math.round((totalYen * (percents[m.id] ?? 0)) / 100))}</span>
+            </div>
             </div>
           ))}
           <p className="muted">金額は目安です。実際は端数処理をしてから決まります。</p>

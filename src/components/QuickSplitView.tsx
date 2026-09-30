@@ -4,7 +4,7 @@ import { AVATARS, roundTo, toNum, yen } from '../format';
 import type { Item, Member, Rounding, Split, WarikanEvent } from '../types';
 import { rangeWarning } from '../checks';
 import { withPaypayLink } from '../share';
-import { playBuzzer } from '../sound';
+import { playBuzzer, playCoinSound } from '../sound';
 import FieldWarning from './FieldWarning';
 import MemberName from './MemberName';
 import NumberInput from './NumberInput';
@@ -34,6 +34,7 @@ export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink 
   const [mode, setMode] = useState<Split['mode']>('equal');
   const [percents, setPercents] = useState<Record<string, number>>(() => equalPercents(['q1', 'q2']));
   const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [paid, setPaid] = useState<Set<string>>(() => new Set());
 
   const members = quickMembers(people);
   const ids = members.map((m) => m.id);
@@ -65,6 +66,23 @@ export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink 
         ? `負担額の合計が合計金額と合っていません（差：${yen(amountSplitDiff(item) ?? 0)}）`
         : null;
   const shares = mode !== 'equal' && amount > 0 && !splitError ? itemShares(item, event) : null;
+
+  // 集金チェック: 幹事以外で払う額がある人。受け取ったらチェックする
+  const collect = members
+    .slice(1)
+    .map((m) => ({ id: m.id, amount: equal ? equal.perPerson : (shares?.[m.id] ?? 0) }))
+    .filter((c) => (equal || shares) && c.amount > 0);
+  const paidCount = collect.filter((c) => paid.has(c.id)).length;
+  const remaining = collect.filter((c) => !paid.has(c.id)).reduce((a, c) => a + c.amount, 0);
+  const togglePaid = (id: string) => {
+    const next = new Set(paid);
+    if (next.has(id)) next.delete(id);
+    else {
+      next.add(id);
+      playCoinSound();
+    }
+    setPaid(next);
+  };
 
   const text = equal
     ? withPaypayLink(
@@ -144,6 +162,8 @@ export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink 
         </div>
 
         <SplitEditor
+          // 人数が変わったら、ワンタップ傾斜の選択もやり直す
+          key={people}
           members={members}
           mode={mode}
           onModeChange={setMode}
@@ -179,20 +199,38 @@ export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink 
           <>
             <div className="muted">それぞれの負担額</div>
             {shares ? (
-              <ul className="quick-shares">
-                {members.map((m) => (
-                  <li key={m.id}>
-                    <MemberName members={members} id={m.id} />
-                    <strong>{yen(shares[m.id])}</strong>
-                  </li>
-                ))}
-              </ul>
+              <p className="quick-organizer">
+                <MemberName members={members} id="q1" /> の負担 <strong>{yen(shares.q1)}</strong>
+              </p>
             ) : (
               <div className="quick-amount">—</div>
             )}
           </>
         )}
         {!amount && <p className="muted">合計金額を入れると計算します。</p>}
+
+        {collect.length > 0 && (
+          <div className="collect">
+            <div className="collect-head">
+              <strong>集金チェック</strong>
+              <span className={remaining === 0 ? 'ok' : ''}>
+                {paidCount}/{collect.length}人済み・残り {yen(remaining)}
+              </span>
+            </div>
+            <ul>
+              {collect.map((c) => (
+                <li key={c.id} className={paid.has(c.id) ? 'paid' : ''}>
+                  <label className="check">
+                    <input type="checkbox" checked={paid.has(c.id)} onChange={() => togglePaid(c.id)} />
+                    <MemberName members={members} id={c.id} />
+                  </label>
+                  <strong>{yen(c.amount)}</strong>
+                </li>
+              ))}
+            </ul>
+            {remaining === 0 && <p className="done">🎉 全員から受け取りました</p>}
+          </div>
+        )}
         {text && (
           <>
             <PaypayQr link={paypayLink} onChange={onChangePaypayLink} />
