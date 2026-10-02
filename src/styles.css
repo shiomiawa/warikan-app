@@ -26,8 +26,10 @@
   /* 背景画像の水平線の位置(上から約73%)。PC の横長画面でも、写真の水平線が画面のこの高さに来るようにする */
   --horizon: 73%;
   --bg-filter: brightness(1.12) saturate(1.15); /* 背景の青を明るく鮮やかにする */
-  /* 本文は丸ゴシック。太字があり、数字の幅がそろっている(金額の桁がそろう) */
-  --font-body: 'M PLUS Rounded 1c', -apple-system, BlinkMacSystemFont, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
+  /* 本文は丸ゴシック。Zen Maru Gothic は太字でも線がつぶれにくい */
+  --font-body: 'Zen Maru Gothic', -apple-system, BlinkMacSystemFont, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
+  /* 金額用。Zen Maru Gothic は数字の幅がそろわないので、数字の幅がそろう丸ゴシックにする */
+  --font-num: 'M PLUS Rounded 1c', var(--font-body);
   /* 見出しとクイック割り勘ボタンは Kiwi Maru。太字(700)がなく数字の幅もそろわないので、本文と金額には使わない */
   --font-title: 'Kiwi Maru', var(--font-body);
   color-scheme: light;
@@ -524,7 +526,17 @@ label.check {
   overflow-x: auto;
 }
 
-/* 金額は数字の幅をそろえて桁が縦にそろうようにする */
+/* 金額は数字の幅がそろうフォントにして、桁が縦にそろうようにする */
+td:not(:first-child),
+.item-amount,
+.quick-amount,
+.collect li strong,
+.pct-yen,
+.amount-row input,
+.quick-total input {
+  font-family: var(--font-num);
+}
+
 table,
 .item-amount,
 .quick-amount,
