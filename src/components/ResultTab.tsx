@@ -10,20 +10,35 @@ import {
 } from '../calc';
 import { CURRENCIES, formatDate, itemLabel, itemTitle, memberColor, money, yen } from '../format';
 import type { Currency, WarikanEvent } from '../types';
-import { withPaypayLink } from '../share';
+import { memberPaypayLink, transferKey, usableLink, withPaypayLink } from '../share';
 import MemberName from './MemberName';
 import PaypayQr from './PaypayQr';
+import SendList from './SendList';
 import ShareButtons from './ShareButtons';
 
 type Props = {
   event: WarikanEvent;
+  onChange: (e: WarikanEvent) => void;
+  paypayLinks: Record<string, string>;
+  onChangePaypayLinks: (links: Record<string, string>) => void;
   paypayLink: string;
   onChangePaypayLink: (link: string) => void;
   paypayQrImage: string;
   onChangePaypayQrImage: (image: string) => void;
 };
 
-export default function ResultTab({ event, paypayLink, onChangePaypayLink, paypayQrImage, onChangePaypayQrImage }: Props) {  const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
+export default function ResultTab({
+  event,
+  onChange,
+  paypayLinks,
+  onChangePaypayLinks,
+  paypayLink,
+  onChangePaypayLink,
+  paypayQrImage,
+  onChangePaypayQrImage,
+}: Props) {
+  const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
+  const receiverLink = (id: string) => usableLink(memberPaypayLink(event.members.find((m) => m.id === id), paypayLinks));
 
   const rates = eventRates(event);
   const summary = summarize(event);
@@ -32,6 +47,7 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink, paypa
   const usedCurrencies = [...new Set(event.items.map(itemCurrency))].filter((c): c is Exclude<Currency, 'JPY'> => c !== 'JPY');
   const rateNotes = usedCurrencies.map((c) => `1${CURRENCIES[c].unit}＝${rates[c]}円`);
   const total = event.items.reduce((a, i) => a + itemAmount(i, rates), 0);
+  const paid = new Set(event.paidTransfers ?? []);
 
   const text = [
     `【${event.name}】精算結果`,
@@ -39,11 +55,15 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink, paypa
     '',
     ...(transfers.length === 0
       ? ['精算は不要です']
-      : transfers.map((t) => `${nick(t.from)} → ${nick(t.to)}：${yen(t.amount)}`)),
+      : transfers.flatMap((t) => [
+          `${nick(t.from)} → ${nick(t.to)}：${yen(t.amount)}${paid.has(transferKey(t)) ? '（精算済）' : ''}`,
+          ...(receiverLink(t.to) ? [`　PayPay（${nick(t.to)}さん）：${receiverLink(t.to)}`] : []),
+        ])),
     ...(rateNotes.length > 0 ? ['', `※換算レート：${rateNotes.join('、')}`] : []),
     ...(autoTolls.length > 0 ? ['※高速代に自動計算（目安）の項目があります'] : []),
   ].join('\n');
-  const shareText = transfers.length > 0 ? withPaypayLink(text, paypayLink) : text;
+  // 受け取る人ごとのリンクを入れたら、そちらを各行に添えるので、幹事のリンクは最後に付けない
+  const shareText = transfers.length > 0 && !transfers.some((t) => receiverLink(t.to)) ? withPaypayLink(text, paypayLink) : text;
 
   if (event.items.length === 0) {
     return (
@@ -76,7 +96,7 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink, paypa
               </thead>
               <tbody>
                 {transfers.map((t, i) => (
-                  <tr key={i}>
+                  <tr key={i} className={paid.has(transferKey(t)) ? 'settled' : undefined}>
                     <td>
                       <MemberName members={event.members} id={t.from} size="md" />
                     </td>
@@ -86,6 +106,7 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink, paypa
                     </td>
                     <td className="amount">
                       <span className="lcd">{yen(t.amount)}</span>
+                      {paid.has(transferKey(t)) && <div className="settled-label">精算済</div>}
                     </td>
                   </tr>
                 ))}
@@ -94,6 +115,15 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink, paypa
           </div>
         )}
         {rateNotes.length > 0 && <p className="muted">換算レート：{rateNotes.join('、')}</p>}
+        {transfers.length > 0 && (
+          <SendList
+            event={event}
+            transfers={transfers}
+            onChange={onChange}
+            paypayLinks={paypayLinks}
+            onChangePaypayLinks={onChangePaypayLinks}
+          />
+        )}
         {transfers.length > 0 && (
           <PaypayQr
             link={paypayLink}

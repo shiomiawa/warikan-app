@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { checkPaypayLink, lineShareUrl, smsShareUrl, withPaypayLink } from './share';
+import {
+  checkPaypayLink,
+  lineShareUrl,
+  memberPaypayLink,
+  smsShareUrl,
+  transferKey,
+  transferText,
+  usableLink,
+  withPaypayLink,
+} from './share';
 
 describe('共有URL', () => {
   it('本文をURLエンコードする', () => {
@@ -31,5 +40,51 @@ describe('withPaypayLink', () => {
     );
     expect(withPaypayLink('結果', '')).toBe('結果');
     expect(withPaypayLink('結果', 'http://x')).toBe('結果');
+  });
+});
+
+describe('usableLink', () => {
+  it('https のリンクだけ返す', () => {
+    expect(usableLink(' https://qr.paypay.ne.jp/abc ')).toBe('https://qr.paypay.ne.jp/abc');
+    expect(usableLink('http://qr.paypay.ne.jp/abc')).toBe('');
+    expect(usableLink(undefined)).toBe('');
+  });
+});
+
+describe('transferKey', () => {
+  it('金額が変わると別のキーになる', () => {
+    expect(transferKey({ from: 'a', to: 'b', amount: 1000 })).toBe('a>b:1000');
+    expect(transferKey({ from: 'a', to: 'b', amount: 1200 })).not.toBe(transferKey({ from: 'a', to: 'b', amount: 1000 }));
+  });
+});
+
+describe('memberPaypayLink', () => {
+  const remembered = { けん: 'https://qr.paypay.ne.jp/ken' };
+
+  it('このイベントで入れたリンクを優先する', () => {
+    expect(memberPaypayLink({ id: 'm1', nickname: 'けん', paypayLink: 'https://qr.paypay.ne.jp/new' }, remembered)).toBe(
+      'https://qr.paypay.ne.jp/new',
+    );
+  });
+
+  it('入れていなければ、前に同じ名前で入れたリンクを使う', () => {
+    expect(memberPaypayLink({ id: 'm1', nickname: ' けん ' }, remembered)).toBe('https://qr.paypay.ne.jp/ken');
+    expect(memberPaypayLink({ id: 'm2', nickname: 'あや' }, remembered)).toBe('');
+  });
+
+  it('このイベントで消したら、前のリンクは使わない', () => {
+    expect(memberPaypayLink({ id: 'm1', nickname: 'けん', paypayLink: '' }, remembered)).toBe('');
+  });
+});
+
+describe('transferText', () => {
+  it('送る相手・金額と、受け取る人のリンクを入れる', () => {
+    expect(transferText('九州旅行', 'ゆう', 'けん', 13500, 'https://qr.paypay.ne.jp/ken')).toBe(
+      '【九州旅行】精算のお願い\nゆうさん → けんさん：13,500円\n\nPayPayで送る場合はこちら（けんさんの受け取りリンク）：\nhttps://qr.paypay.ne.jp/ken',
+    );
+  });
+
+  it('リンクがなければ添えない', () => {
+    expect(transferText('九州旅行', 'ゆう', 'けん', 13500, '')).toBe('【九州旅行】精算のお願い\nゆうさん → けんさん：13,500円');
   });
 });

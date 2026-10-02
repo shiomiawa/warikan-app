@@ -1454,3 +1454,108 @@ details.split[open] summary {
   font-size: 1.15rem;
   font-weight: 700;
 }
+
+/* 1人ずつ送る(払う人ごとに LINE・SMS で送る) */
+.send-list {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--border);
+}
+
+.send-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: var(--main-deep);
+}
+
+.receiver-link {
+  margin: 8px 0;
+}
+
+.receiver-link-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.send-rows {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.send-rows li {
+  padding: 10px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.send-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.send-who .arrow {
+  color: var(--text-sub);
+}
+
+.send-amount {
+  margin-left: auto;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+}
+
+.send-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.send-actions .share {
+  min-height: 40px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+}
+
+.settle-toggle.on {
+  background: var(--text-sub);
+  border-color: var(--text-sub);
+  color: var(--white);
+}
+
+/* 精算済の送金はグレーにする(ラベルとボタンは読めるように薄くしない) */
+.send-rows li.settled .member-name,
+.send-rows li.settled .arrow,
+.send-rows li.settled .send-amount,
+table.final tr.settled .member-name,
+table.final tr.settled .arrow,
+table.final tr.settled .lcd {
+  opacity: 0.45;
+}
+
+.send-rows li.settled .send-amount,
+table.final tr.settled .lcd {
+  text-decoration: line-through;
+}
+
+.settled-label {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--text-sub);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+table.final .settled-label {
+  display: block;
+  width: fit-content;
+  margin: 4px 0 0 auto;
+}

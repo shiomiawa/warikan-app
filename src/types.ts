@@ -2,6 +2,7 @@ export type Member = {
   id: string;
   nickname: string;
   avatar?: number; // 色の番号(名前の頭文字のバッジと文字の色)。未設定なら並び順
+  paypayLink?: string; // この人のPayPay受け取りリンク(1人ずつ送る文に添える)。未設定なら前に同じ名前で入れたもの
 };
 
 export type Split =
@@ -67,6 +68,7 @@ export type WarikanEvent = {
   currencies?: Currency[]; // 使う外貨(省略時は米ドル・韓国ウォンの両方)
   members: Member[];
   items: Item[];
+  paidTransfers?: string[]; // 精算済にした送金(transferKey)
 };
 
 export type GasolineMode = Gasoline['inputMode'];
@@ -78,6 +80,7 @@ export type AppSettings = {
   gasolineModes: Exclude<GasolineMode, 'map'>[]; // 地図のほかに使うガソリン代の距離の入れ方
   paypayLink?: string; // 幹事のPayPay受け取りリンク(QRにして表示・共有文に添える)
   paypayQrImage?: string; // 幹事のPayPay受け取りQRコードのスクショ(縮めた data URL。そのまま表示する)
+  paypayLinks?: Record<string, string>; // メンバーの名前 → PayPay受け取りリンク(次のイベントでも引き継ぐ)
 };
 
 export type Transfer ={ from: string; to: string; amount: number };

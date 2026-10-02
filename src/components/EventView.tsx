@@ -81,6 +81,9 @@ export default function EventView({ event, settings, onChange, onChangeSettings,
           {view === 'result' && (
             <ResultTab
               event={event}
+              onChange={onChange}
+              paypayLinks={settings.paypayLinks ?? {}}
+              onChangePaypayLinks={(paypayLinks) => onChangeSettings({ ...settings, paypayLinks })}
               paypayLink={settings.paypayLink ?? ''}
               onChangePaypayLink={(paypayLink) => onChangeSettings({ ...settings, paypayLink })}
               paypayQrImage={settings.paypayQrImage ?? ''}
