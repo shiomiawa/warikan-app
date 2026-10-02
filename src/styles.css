@@ -1601,3 +1601,35 @@ table.final .settled-label {
   margin: 4px 0 0;
 }
 
+/* 明細の折りたたみ(見出しをタップで開く) */
+.detail-fold summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.detail-fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-fold summary::before {
+  content: '▶';
+  color: var(--main-deep);
+  font-size: 0.75rem;
+  transition: transform 0.15s;
+}
+
+.detail-fold[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.detail-fold summary h2 {
+  margin: 0;
+}
+
+.detail-fold[open] summary {
+  margin-bottom: 8px;
+}
+

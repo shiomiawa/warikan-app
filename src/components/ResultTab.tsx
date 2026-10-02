@@ -223,8 +223,11 @@ export default function ResultTab({
         </div>
       </section>
 
-      <section className="card">
-        <h2>明細：項目ごとの負担額</h2>
+      {/* 項目が多いと長くなるので、初めは畳んでおく */}
+      <details className="card detail-fold">
+        <summary>
+          <h2>明細：項目ごとの負担額</h2>
+        </summary>
         <div className="table-wrap">
           <table>
             <thead>
@@ -269,7 +272,7 @@ export default function ResultTab({
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
     </>
   );
 }
