@@ -1,5 +1,13 @@
 import { yen } from '../format';
-import { checkPaypayLink, lineShareUrl, memberPaypayLink, smsShareUrl, transferKey, transferText } from '../share';
+import {
+  checkPaypayLink,
+  lineShareUrl,
+  memberPaypayLink,
+  receiverText,
+  smsShareUrl,
+  transferKey,
+  transferText,
+} from '../share';
 import { playCoinSound } from '../sound';
 import type { Transfer, WarikanEvent } from '../types';
 import MemberName from './MemberName';
@@ -15,6 +23,7 @@ type Props = {
 
 /**
  * 払う人1人ずつに、送る相手・金額・受け取る人のPayPayリンクを LINE・SMS で送る。
+ * 受け取る人には、自分で受け取りリンクを作って払う人に送るよう頼む文を送れる(幹事がリンクを知らなくてよい)。
  * 送金が済んだら「精算済」にして、グレーで表示する。
  */
 export default function SendList({ event, transfers, onChange, paypayLinks, onChangePaypayLinks }: Props) {
@@ -45,7 +54,7 @@ export default function SendList({ event, transfers, onChange, paypayLinks, onCh
     <div className="send-list">
       <h3 className="send-title">📨 1人ずつ送る</h3>
       <p className="muted">
-        払う人それぞれに、送る相手と金額を LINE・SMS で送れます。受け取る人の PayPay リンクを入れておくと、文に添えます（あとから PayPay で送金できます）。
+        送金ごとに、払う人と受け取る人のそれぞれに LINE・SMS で連絡できます。受け取る人の PayPay リンクを知っていれば入れておくと、払う人への文に添えます。知らなければ、受け取る人に「リンクを作って払う人に送って」と頼む文を送れます。
       </p>
 
       {receivers.map((id) => {
@@ -73,7 +82,8 @@ export default function SendList({ event, transfers, onChange, paypayLinks, onCh
       <ul className="send-rows">
         {transfers.map((t) => {
           const done = paid.has(transferKey(t));
-          const text = transferText(event.name, nick(t.from), nick(t.to), t.amount, linkOf(t.to));
+          const toPayer = transferText(event.name, nick(t.from), nick(t.to), t.amount, linkOf(t.to));
+          const toReceiver = receiverText(event.name, nick(t.from), nick(t.to), t.amount, linkOf(t.to));
           return (
             <li key={transferKey(t)} className={done ? 'settled' : undefined}>
               <div className="send-who">
@@ -83,17 +93,23 @@ export default function SendList({ event, transfers, onChange, paypayLinks, onCh
                 <strong className="send-amount">{yen(t.amount)}</strong>
                 {done && <span className="settled-label">精算済</span>}
               </div>
-              <div className="send-actions">
-                <a className="share line" href={lineShareUrl(text)} target="_blank" rel="noreferrer">
-                  LINEで送る
-                </a>
-                <a className="share sms" href={smsShareUrl(text)}>
-                  SMSで送る
-                </a>
-                <button type="button" className={`share settle-toggle${done ? ' on' : ''}`} onClick={() => togglePaid(t)}>
-                  {done ? '✓ 精算済' : '精算済にする'}
-                </button>
-              </div>
+              {[
+                { label: `${nick(t.from)}さんへ（払う人）`, text: toPayer },
+                { label: `${nick(t.to)}さんへ（受け取る人）`, text: toReceiver },
+              ].map(({ label, text }) => (
+                <div key={label} className="send-actions">
+                  <span className="send-to">{label}</span>
+                  <a className="share line" href={lineShareUrl(text)} target="_blank" rel="noreferrer">
+                    LINE
+                  </a>
+                  <a className="share sms" href={smsShareUrl(text)}>
+                    SMS
+                  </a>
+                </div>
+              ))}
+              <button type="button" className={`share wide settle-toggle${done ? ' on' : ''}`} onClick={() => togglePaid(t)}>
+                {done ? '✓ 精算済' : '精算済にする'}
+              </button>
             </li>
           );
         })}

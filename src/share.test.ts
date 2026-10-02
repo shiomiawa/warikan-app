@@ -3,6 +3,7 @@ import {
   checkPaypayLink,
   lineShareUrl,
   memberPaypayLink,
+  receiverText,
   smsShareUrl,
   transferKey,
   transferText,
@@ -88,3 +89,18 @@ describe('transferText', () => {
     expect(transferText('九州旅行', 'ゆう', 'けん', 13500, '')).toBe('【九州旅行】精算のお願い\nゆうさん → けんさん：13,500円');
   });
 });
+
+describe('receiverText', () => {
+  it('リンクがなければ、受け取る人に自分でリンクを作って送るよう頼む', () => {
+    expect(receiverText('九州旅行', 'ゆう', 'けん', 10000, '')).toBe(
+      '【九州旅行】精算のお知らせ\nけんさんは、ゆうさんから 10,000円 を受け取ります。\nPayPayアプリの「受け取る」で受け取りリンクを作って、ゆうさんに送ってください。',
+    );
+  });
+
+  it('リンクを入れてあれば、払う人への連絡に入れたと伝える', () => {
+    expect(receiverText('九州旅行', 'ゆう', 'けん', 10000, 'https://qr.paypay.ne.jp/ken')).toBe(
+      '【九州旅行】精算のお知らせ\nけんさんは、ゆうさんから 10,000円 を受け取ります。\nPayPayの受け取りリンクは、ゆうさんへの連絡に入れてあります。',
+    );
+  });
+});
+

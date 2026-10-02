@@ -1509,17 +1509,32 @@ details.split[open] summary {
   font-size: 1.1rem;
 }
 
+/* 「◯さんへ」と LINE・SMS のボタンを1行に並べる */
 .send-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 72px 72px;
+  align-items: center;
   gap: 6px;
   margin-top: 6px;
 }
 
-.send-actions .share {
-  min-height: 40px;
-  padding: 6px 8px;
+.send-to {
+  min-width: 0;
   font-size: 0.8rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.send-actions .share,
+.send-rows .settle-toggle {
+  min-height: 38px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+
+.send-rows .settle-toggle {
+  width: 100%;
+  margin-top: 8px;
 }
 
 .settle-toggle.on {

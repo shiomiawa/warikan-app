@@ -54,3 +54,18 @@ export function transferText(eventName: string, from: string, to: string, amount
   if (url) lines.push('', `PayPayで送る場合はこちら（${to}さんの受け取りリンク）：`, url);
   return lines.join('\n');
 }
+
+/**
+ * 受け取る人に送る文。幹事は受け取る人のリンクを知らないことが多いので、
+ * 受け取る人が自分でリンクを作って払う人に送るよう頼む。リンクを入れてあれば、払う人への文に入れたと伝える
+ */
+export function receiverText(eventName: string, from: string, to: string, amount: number, link: string): string {
+  return [
+    `【${eventName}】精算のお知らせ`,
+    `${to}さんは、${from}さんから ${yen(amount)} を受け取ります。`,
+    usableLink(link)
+      ? `PayPayの受け取りリンクは、${from}さんへの連絡に入れてあります。`
+      : `PayPayアプリの「受け取る」で受け取りリンクを作って、${from}さんに送ってください。`,
+  ].join('\n');
+}
+
