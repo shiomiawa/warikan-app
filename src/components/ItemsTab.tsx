@@ -64,22 +64,19 @@ export default function ItemsTab({ event, settings, onChange, onSettle, onOpenEd
           {sorted.map((item, i) => {
             const currency = itemCurrency(item);
             const newDay = i === 0 || sorted[i - 1].date !== item.date;
+            // 種類のラベルは「絵文字 種類名」。絵文字は丸いバッジに入れて先頭に出す
+            const [kindIcon, ...kindWords] = itemLabel(item).split(' ');
             return (
               <Fragment key={item.id}>
               {newDay && <li className="date-head">📅 {formatDate(item.date)}</li>}
               <li>
                 <div className="grow">
-                  {item.name.trim() ? (
-                    <>
-                      <strong>{itemTitle(item)}</strong>
-                      <span className="tag">{itemLabel(item)}</span>
-                    </>
-                  ) : (
-                    // 詳細が空なら表示名が種類名と同じなので、ラベルは出さずアイコンだけ付ける
-                    <strong>
-                      {itemLabel(item).split(' ')[0]} {itemTitle(item)}
-                    </strong>
-                  )}
+                  <span className="kind-badge" aria-hidden="true">
+                    {kindIcon}
+                  </span>
+                  <strong>{itemTitle(item)}</strong>
+                  {/* 詳細が空なら表示名が種類名と同じなので、ラベルは出さない */}
+                  {item.name.trim() && <span className="tag">{kindWords.join(' ')}</span>}
                   {item.kind === 'etc' && item.etc && (
                     <span className={`tag toll-${item.etc.mode === 'auto' ? 'auto' : 'manual'}`}>
                       {item.etc.mode === 'auto' ? '自動計算（目安）' : '手入力'}

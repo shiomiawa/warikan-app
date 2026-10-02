@@ -4,6 +4,9 @@ import { EVENT_KINDS, eventIcon, formatDate, newId } from './format';
 import { loadData, saveData } from './storage';
 import type { AppSettings, Member, Rounding, WarikanEvent } from './types';
 import EventView from './components/EventView';
+import BackgroundDecor from './components/illustrations/BackgroundDecor';
+import Calculator from './components/illustrations/Calculator';
+import CalculatorWithSuitcase from './components/illustrations/CalculatorWithSuitcase';
 import KindField from './components/KindField';
 import MembersEditor from './components/MembersEditor';
 import QuickSplitView from './components/QuickSplitView';
@@ -106,10 +109,14 @@ export default function App() {
 
   return (
     <main>
+      <BackgroundDecor />
       <header className="hero">
-        <div>
-          <h1>✈️ 割り勘アプリ</h1>
-          <p>立て替えをまとめてスッキリ精算</p>
+        <div className="hero-title">
+          <Calculator className="hero-calc" />
+          <div>
+            <h1>✈️ 割り勘アプリ</h1>
+            <p>立て替えをまとめてスッキリ精算</p>
+          </div>
         </div>
         <button className="edit-button" onClick={() => setShowSettings(true)}>
           ⚙️ 設定
@@ -119,6 +126,8 @@ export default function App() {
       <button className="quick-button" onClick={() => setShowQuick(true)}>
         ⚡ クイック割り勘
       </button>
+
+      {data.events.length === 0 && <CalculatorWithSuitcase className="empty-illust" />}
 
       {/* イベントがあるときは作成フォームを畳んで、一覧をすぐ見られるようにする */}
       {showCreate || data.events.length === 0 ? (

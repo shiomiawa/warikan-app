@@ -78,7 +78,9 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink }: Pro
                     <td>
                       <MemberName members={event.members} id={t.to} size="md" />
                     </td>
-                    <td className="amount">{yen(t.amount)}</td>
+                    <td className="amount">
+                      <span className="lcd">{yen(t.amount)}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

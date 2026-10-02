@@ -1,39 +1,38 @@
-/* 色はすべてここの変数から指定する(CSS内に色を直書きしない)。ベース70%・メイン25%・アクセント5% */
+/* 色はすべてここの変数から指定する(CSS内に色を直書きしない)。「電卓×旅行」のポップな配色 */
 :root {
-  --base: #f4fafc; /* 背景・カード・入力欄 */
-  --main: #0e86b4; /* 見出し・タブ・主ボタン・リンク */
-  --main-deep: #0a6a92; /* メイン色の文字・白文字をのせる背景用。#0e86b4 だと白い面とのコントラストが4.5:1に届かない(海の上のカードでも届くよう少し濃くしている) */
-  --main-soft: color-mix(in srgb, var(--main) 12%, var(--base)); /* タグ・表の見出しなどの薄い面 */
-  --accent: #ff8a3d; /* 「クイック割り勘」ボタンだけに使う */
-  --text: #12303f;
-  --text-sub: #4a6573;
-  --border: color-mix(in srgb, var(--main) 22%, var(--base));
-  --receive: #2e9e6b; /* 受け取る金額・名前だけに使う */
-  --pay: #e5533d; /* 払う金額・名前だけに使う */
-  /* 受け取る・払うの色は小さい文字だと薄いので、文字では少し濃くして使う */
-  --receive-text: color-mix(in srgb, var(--receive) 70%, black);
-  --pay-text: color-mix(in srgb, var(--pay) 75%, black);
+  --base: #fff8ee; /* 背景・カード */
+  --main: #5ab8e6; /* 見出し・タブ・主ボタン・リンク */
+  --main-deep: #1a6f9c; /* メイン色の文字用。#5ab8e6 はクリーム地で2.1:1しかないので、文字は濃くして使う */
+  --main-soft: color-mix(in srgb, var(--main) 15%, var(--base)); /* タグ・表の見出しなどの薄い面 */
+  --main-shadow: color-mix(in srgb, var(--main) 70%, var(--text)); /* 主ボタンの下の影(押すと沈む) */
+  --accent: #ffc93c; /* 「クイック割り勘」ボタンだけに使う */
+  --accent-shadow: color-mix(in srgb, var(--accent) 70%, var(--text));
+  --text: #3b3a4a;
+  --text-sub: #6b6878;
+  --border: color-mix(in srgb, var(--main) 22%, var(--base)); /* カード・入力欄の淡い枠線 */
+  --receive: #3daa6d; /* 受け取る金額・名前だけに使う */
+  --pay: #e85d75; /* 払う金額・名前だけに使う */
+  /* 受け取る・払うの色はクリーム地や電卓画面だと薄いので、文字では濃くして使う */
+  --receive-text: #1d7346;
+  --pay-text: #b83049;
+  --lcd: #ddefd0; /* 電卓の画面 */
+  --lcd-border: color-mix(in srgb, var(--lcd) 75%, var(--text));
+  --white: #ffffff; /* 雲・飛行機の胴体など */
   --error: #b42318; /* 入力エラー。「払う」とは分ける */
-  --warn-bg: #fff4dc;
+  --warn-bg: #fff0c8;
   --warn-text: #8a5300;
-  --on-main: #ffffff; /* メイン色の背景の上の文字 */
+  --on-main: var(--text); /* 水色の背景の上の文字。白だと2.2:1で読みにくいので本文色にする */
+  --on-avatar: #ffffff; /* メンバーの色(濃い色)の上の文字 */
   --line: #06c755; /* LINE のブランド色 */
   --on-line: #ffffff;
-  --card: color-mix(in srgb, var(--base) 85%, transparent);
-  --overlay: rgba(255, 255, 255, 0.35); /* 背景画像の上に重ねる白 */
-  --overlay-top: rgba(255, 255, 255, 0.55); /* 空の濃い青の上でも見出しが読めるよう、上端だけ白を濃くする */
-  --overlay-sea: rgba(255, 255, 255, 0.1); /* 海の上は白を薄くして、海の青を残す */
-  --sea-tint: rgba(10, 79, 160, 0.4); /* 海に重ねる濃い青(手前ほど濃くする) */
-  --bg-image: none; /* main.tsx で import した画像を入れる */
-  /* 背景画像の水平線の位置(上から約73%)。PC の横長画面でも、写真の水平線が画面のこの高さに来るようにする */
-  --horizon: 73%;
-  --bg-filter: brightness(1.12) saturate(1.15); /* 背景の青を明るく鮮やかにする */
-  /* 本文は丸ゴシック。Zen Maru Gothic は太字でも線がつぶれにくい */
+  --card: var(--base);
+  --shadow: 0 6px 18px rgba(59, 58, 74, 0.08); /* カードのやわらかい影 */
+  --dot: color-mix(in srgb, var(--main) 18%, var(--base)); /* 背景のドット模様 */
+  /* 本文と見出しは丸ゴシックの Zen Maru Gothic */
   --font-body: 'Zen Maru Gothic', -apple-system, BlinkMacSystemFont, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
   /* 金額用。Zen Maru Gothic は数字の幅がそろわないので、数字の幅がそろう丸ゴシックにする */
   --font-num: 'M PLUS Rounded 1c', var(--font-body);
-  /* 見出しとクイック割り勘ボタンは Kiwi Maru。太字(700)がなく数字の幅もそろわないので、本文と金額には使わない */
-  --font-title: 'Kiwi Maru', var(--font-body);
+  --font-title: var(--font-body);
   color-scheme: light;
 }
 
@@ -44,30 +43,15 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--base);
+  /* クリーム色に薄いドット模様 */
+  background-color: var(--base);
+  background-image: radial-gradient(var(--dot) 2px, transparent 2.5px);
+  background-size: 22px 22px;
   color: var(--text);
   font-family: var(--font-body);
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.6;
-}
-
-/* 背景画像は全画面に固定(background-attachment: fixed はスマホで効かないため疑似要素で) */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  /* スマホのアドレスバーの出し入れで高さが変わって背景が伸び縮みしないよう、大きい方の画面の高さに固定する */
-  height: 100vh;
-  height: 100lvh;
-  z-index: -1;
-  background:
-    linear-gradient(var(--overlay-top), var(--overlay) 45%, var(--overlay) var(--horizon), var(--overlay-sea) calc(var(--horizon) + 4%)),
-    linear-gradient(transparent var(--horizon), var(--sea-tint)),
-    var(--bg-image) center var(--horizon) / cover no-repeat;
-  filter: var(--bg-filter);
 }
 
 main {
@@ -79,14 +63,14 @@ main {
 h1,
 h2 {
   font-family: var(--font-title);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 h1 {
   font-size: 1.35rem;
   margin: 4px 0 2px;
-  color: var(--text);
+  color: var(--main-deep);
 }
 
 h2 {
@@ -111,7 +95,7 @@ h2 {
 
 .hero p {
   margin: 0;
-  color: var(--text);
+  color: var(--text-sub);
   font-size: 0.8rem;
 }
 
@@ -119,18 +103,11 @@ h2 {
   margin: 0 0 8px;
 }
 
-/* カードの外(背景画像の上)の文字は、薄い色だと空の青に沈むので本文色にする */
-.muted.subtitle,
-h2.view-title {
-  color: var(--text);
-}
-
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
   padding: 12px 14px;
   margin-bottom: 12px;
 }
@@ -212,15 +189,34 @@ button {
   font-weight: 700;
 }
 
+/* 押したとき少し沈む */
+button {
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+button.primary:active:not(:disabled),
+.quick-button:active {
+  box-shadow: 0 1px 0 var(--main-shadow);
+}
+
+.quick-button:active {
+  box-shadow: 0 1px 0 var(--accent-shadow);
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 button.primary {
-  background: var(--main-deep);
-  border-color: var(--main-deep);
+  background: var(--main);
+  border-color: var(--main);
   color: var(--on-main);
+  box-shadow: 0 3px 0 var(--main-shadow);
 }
 
 button.danger {
@@ -302,8 +298,8 @@ legend {
 }
 
 .tabs button.active {
-  background: var(--main-deep);
-  border-color: var(--main-deep);
+  background: var(--main);
+  border-color: var(--main);
   color: var(--on-main);
 }
 
@@ -385,7 +381,7 @@ legend {
 }
 
 .currency-switch button.on {
-  background: var(--main-deep);
+  background: var(--main);
   color: var(--on-main);
 }
 
@@ -456,7 +452,7 @@ label.check {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--on-main);
+  color: var(--on-avatar);
   font-size: 0.75rem;
   font-weight: 800;
   white-space: nowrap;
@@ -595,7 +591,7 @@ table.final {
 }
 
 table.final td {
-  padding: 10px 8px;
+  padding: 8px 4px;
   text-align: left;
 }
 
@@ -862,7 +858,8 @@ button.swap {
   color: var(--text);
   font-family: var(--font-title);
   font-size: 1.05rem;
-  font-weight: 500;
+  font-weight: 700;
+  box-shadow: 0 3px 0 var(--accent-shadow);
 }
 
 .people-input {
@@ -898,10 +895,18 @@ button.swap {
   text-align: center;
 }
 
+/* 1人あたりの金額は電卓の画面風に大きく表示する */
 .quick-amount {
+  display: inline-block;
+  min-width: 8em;
+  margin: 4px 0;
+  padding: 4px 18px;
+  border: 2px solid var(--lcd-border);
+  border-radius: 14px;
+  background: var(--lcd);
   font-size: 2.2rem;
-  font-weight: 900;
-  color: var(--main-deep);
+  font-weight: 700;
+  color: var(--text);
   line-height: 1.3;
 }
 
@@ -965,8 +970,8 @@ button.more {
 }
 
 .share.sms {
-  background: var(--main-deep);
-  border-color: var(--main-deep);
+  background: var(--main);
+  border-color: var(--main);
   color: var(--on-main);
 }
 
@@ -1087,8 +1092,8 @@ details.split[open] summary {
 }
 
 .tier-chips button.on {
-  background: var(--main-deep);
-  border-color: var(--main-deep);
+  background: var(--main);
+  border-color: var(--main);
   color: var(--on-main);
 }
 
@@ -1140,4 +1145,147 @@ details.split[open] summary {
 .collect li.paid strong {
   opacity: 0.45;
   text-decoration: line-through;
+}
+
+/* イラスト(SVG)。色は CSS 変数から付ける */
+.il-line {
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.il-line-thin {
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.il-nofill {
+  fill: none;
+}
+
+.il-main {
+  fill: var(--main);
+}
+
+.il-accent {
+  fill: var(--accent);
+}
+
+.il-lcd {
+  fill: var(--lcd);
+}
+
+.il-text {
+  fill: var(--text);
+}
+
+.il-white {
+  fill: var(--white);
+}
+
+.il-pay {
+  fill: var(--pay);
+}
+
+.il-stripe {
+  stroke: var(--main);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.il-cloud {
+  stroke: var(--border);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+/* ホームの見出しの横の電卓キャラクター */
+.hero-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-calc {
+  flex: 0 0 auto;
+  width: 46px;
+  height: auto;
+}
+
+/* イベントがまだないときの、スーツケースを持った電卓 */
+.empty-illust {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin: 0 auto 8px;
+}
+
+/* 背景に小さく散らす雲と飛行機 */
+.bg-decor {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-decor svg {
+  position: absolute;
+  height: auto;
+}
+
+.bg-cloud-1 {
+  bottom: 4%;
+  right: 12%;
+  width: 78px;
+}
+
+.bg-cloud-2 {
+  top: 52%;
+  right: -22px;
+  width: 96px;
+}
+
+.bg-cloud-3 {
+  bottom: 12%;
+  left: 4%;
+  width: 70px;
+}
+
+/* 右上へ上っていくように少し傾ける */
+.bg-airplane {
+  bottom: 22%;
+  right: 8%;
+  width: 64px;
+  transform: rotate(-10deg);
+}
+
+/* 項目の種類の絵文字を入れる丸いバッジ */
+.kind-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--main-soft);
+  font-size: 0.9rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* 精算結果の金額は電卓の画面風のボックスに入れる */
+.lcd {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 2px solid var(--lcd-border);
+  border-radius: 10px;
+  background: var(--lcd);
+  font-family: var(--font-num);
+  font-size: 1.15rem;
+  font-weight: 700;
 }
