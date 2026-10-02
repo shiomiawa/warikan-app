@@ -23,6 +23,8 @@
   --overlay: rgba(255, 255, 255, 0.35); /* 背景画像の上に重ねる白 */
   --overlay-top: rgba(255, 255, 255, 0.55); /* 空の濃い青の上でも見出しが読めるよう、上端だけ白を濃くする */
   --bg-image: none; /* main.tsx で import した画像を入れる */
+  /* 背景画像の水平線の位置(上から約73%)。PC の横長画面でも、写真の水平線が画面のこの高さに来るようにする */
+  --horizon: 73%;
   --bg-filter: brightness(1.12) saturate(1.15); /* 背景の青を明るく鮮やかにする */
   --balloon-image: none; /* main.tsx で import した気球の画像を入れる */
   --font-body: -apple-system, BlinkMacSystemFont, 'Inter', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
@@ -58,17 +60,17 @@ body::before {
   z-index: -1;
   background:
     linear-gradient(var(--overlay-top), var(--overlay) 45%),
-    var(--bg-image) center / cover no-repeat;
+    var(--bg-image) center var(--horizon) / cover no-repeat;
   filter: var(--bg-filter);
 }
 
 /* 背景の空に浮かぶ気球(カードの後ろに置き、操作の邪魔にしない)。
-   水平線(画面の高さの約73%)の少し上の、カードに隠れにくい空に置く */
+   気球の下端を水平線(画面の高さの約73%)の少し上にそろえ、カードに隠れにくい空に置く */
 body::after {
   content: '';
   position: fixed;
-  top: 57vh;
-  top: 57lvh;
+  bottom: 31vh;
+  bottom: 31lvh;
   right: 8vw;
   z-index: -1;
   width: clamp(64px, 18vw, 120px);
