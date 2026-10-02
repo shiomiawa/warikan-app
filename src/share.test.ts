@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkPaypayLink,
+  collectLinksText,
   lineShareUrl,
   memberPaypayLink,
+  organizerIdOf,
   receiverText,
   smsShareUrl,
   transferKey,
@@ -73,6 +75,12 @@ describe('memberPaypayLink', () => {
     expect(memberPaypayLink({ id: 'm2', nickname: 'あや' }, remembered)).toBe('');
   });
 
+  it('どちらもなければ fallback(幹事のリンク)を使う', () => {
+    expect(memberPaypayLink({ id: 'm2', nickname: 'あや' }, remembered, 'https://qr.paypay.ne.jp/aya')).toBe(
+      'https://qr.paypay.ne.jp/aya',
+    );
+  });
+
   it('このイベントで消したら、前のリンクは使わない', () => {
     expect(memberPaypayLink({ id: 'm1', nickname: 'けん', paypayLink: '' }, remembered)).toBe('');
   });
@@ -80,27 +88,56 @@ describe('memberPaypayLink', () => {
 
 describe('transferText', () => {
   it('送る相手・金額と、受け取る人のリンクを入れる', () => {
-    expect(transferText('九州旅行', 'ゆう', 'けん', 13500, 'https://qr.paypay.ne.jp/ken')).toBe(
+    expect(transferText('九州旅行', 'ゆう', 'けん', 13500, 'https://qr.paypay.ne.jp/ken', 'あや')).toBe(
       '【九州旅行】精算のお願い\nゆうさん → けんさん：13,500円\n\nPayPayで送る場合はこちら（けんさんの受け取りリンク）：\nhttps://qr.paypay.ne.jp/ken',
     );
   });
 
-  it('リンクがなければ添えない', () => {
-    expect(transferText('九州旅行', 'ゆう', 'けん', 13500, '')).toBe('【九州旅行】精算のお願い\nゆうさん → けんさん：13,500円');
+  it('リンクがなければ、送り先を幹事に聞くよう伝える', () => {
+    expect(transferText('九州旅行', 'ゆう', 'けん', 13500, '', 'あや')).toBe(
+      '【九州旅行】精算のお願い\nゆうさん → けんさん：13,500円\n\nPayPayの送り先がわからない場合は、幹事のあやさんに連絡してください。',
+    );
   });
 });
 
 describe('receiverText', () => {
-  it('リンクがなければ、受け取る人に自分でリンクを作って送るよう頼む', () => {
-    expect(receiverText('九州旅行', 'ゆう', 'けん', 10000, '')).toBe(
-      '【九州旅行】精算のお知らせ\nけんさんは、ゆうさんから 10,000円 を受け取ります。\nPayPayアプリの「受け取る」で受け取りリンクを作って、ゆうさんに送ってください。',
-    );
-  });
-
-  it('リンクを入れてあれば、払う人への連絡に入れたと伝える', () => {
-    expect(receiverText('九州旅行', 'ゆう', 'けん', 10000, 'https://qr.paypay.ne.jp/ken')).toBe(
-      '【九州旅行】精算のお知らせ\nけんさんは、ゆうさんから 10,000円 を受け取ります。\nPayPayの受け取りリンクは、ゆうさんへの連絡に入れてあります。',
+  it('受け取る合計と払う人を伝え、リンクを幹事に送るよう頼む', () => {
+    expect(
+      receiverText('九州旅行', 'けん', [{ name: 'ゆう', amount: 1000 }, { name: 'さき', amount: 1500 }], 'あや'),
+    ).toBe(
+      '【九州旅行】PayPayの受け取りリンクのお願い\nけんさんは、ゆうさん・さきさんから 合計 2,500円 を受け取ります。\nPayPayアプリの「受け取る」で受け取りリンクを作って、幹事のあやさんに送ってください。あやさんから、払う人に伝えます。',
     );
   });
 });
 
+describe('collectLinksText', () => {
+  it('受け取る人と金額を並べて、まとめて頼む', () => {
+    expect(collectLinksText('九州旅行', [{ name: 'けん', amount: 2500 }, { name: 'ゆう', amount: 800 }], 'あや')).toBe(
+      '【九州旅行】PayPayの受け取りリンクのお願い\n精算でお金を受け取る人は、PayPayアプリの「受け取る」で受け取りリンクを作って、幹事のあやさんに送ってください。\n\n・けんさん（2,500円 受け取り）\n・ゆうさん（800円 受け取り）',
+    );
+  });
+});
+
+describe('organizerIdOf', () => {
+  const event = (organizerId?: string) => ({
+    id: 'e',
+    name: '',
+    kind: '旅行',
+    rounding: 1 as const,
+    members: [
+      { id: 'a', nickname: 'あや' },
+      { id: 'b', nickname: 'けん' },
+    ],
+    items: [],
+    organizerId,
+  });
+
+  it('選んだ幹事を返す', () => {
+    expect(organizerIdOf(event('b'))).toBe('b');
+  });
+
+  it('未設定や、もういないメンバーなら1人目', () => {
+    expect(organizerIdOf(event())).toBe('a');
+    expect(organizerIdOf(event('x'))).toBe('a');
+  });
+});

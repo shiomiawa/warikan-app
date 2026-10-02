@@ -69,6 +69,7 @@ export type WarikanEvent = {
   members: Member[];
   items: Item[];
   paidTransfers?: string[]; // 精算済にした送金(transferKey)
+  organizerId?: string; // 幹事(PayPayの受け取りリンクを集める人)。未設定なら1人目
 };
 
 export type GasolineMode = Gasoline['inputMode'];

@@ -10,7 +10,7 @@ import {
 } from '../calc';
 import { CURRENCIES, formatDate, itemLabel, itemTitle, memberColor, money, yen } from '../format';
 import type { Currency, WarikanEvent } from '../types';
-import { memberPaypayLink, transferKey, usableLink, withPaypayLink } from '../share';
+import { memberPaypayLink, organizerIdOf, transferKey, usableLink, withPaypayLink } from '../share';
 import MemberName from './MemberName';
 import PaypayQr from './PaypayQr';
 import SendList from './SendList';
@@ -38,7 +38,15 @@ export default function ResultTab({
   onChangePaypayQrImage,
 }: Props) {
   const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
-  const receiverLink = (id: string) => usableLink(memberPaypayLink(event.members.find((m) => m.id === id), paypayLinks));
+  // 幹事のリンクは、設定に登録したものを使う
+  const receiverLink = (id: string) =>
+    usableLink(
+      memberPaypayLink(
+        event.members.find((m) => m.id === id),
+        paypayLinks,
+        id === organizerIdOf(event) ? paypayLink : '',
+      ),
+    );
 
   const rates = eventRates(event);
   const summary = summarize(event);
@@ -122,6 +130,7 @@ export default function ResultTab({
             onChange={onChange}
             paypayLinks={paypayLinks}
             onChangePaypayLinks={onChangePaypayLinks}
+            organizerLink={paypayLink}
           />
         )}
         {transfers.length > 0 && (

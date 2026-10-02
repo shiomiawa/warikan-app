@@ -1468,8 +1468,25 @@ details.split[open] summary {
   color: var(--main-deep);
 }
 
+.organizer-field {
+  margin-top: 10px;
+}
+
+/* ①②の手順の見出し */
+.send-step {
+  margin: 14px 0 4px;
+  font-weight: 700;
+  color: var(--main-deep);
+}
+
 .receiver-link {
   margin: 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.receiver-link label {
+  margin-bottom: 0;
 }
 
 .receiver-link-name {
