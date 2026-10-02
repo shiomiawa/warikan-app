@@ -1,27 +1,31 @@
-/* 色はすべてここの変数から指定する(CSS内に色を直書きしない) */
+/* 色はすべてここの変数から指定する(CSS内に色を直書きしない)。ベース70%・メイン25%・アクセント5% */
 :root {
-  --bg: #000000;
-  --surface: #1c1c1e;
-  --surface-2: #2c2c2e; /* 入力欄・ボタン・表の見出しなど、カードの上に重ねる面 */
-  --border: #38383a;
-  --text: #f5f5f7;
-  --text-sub: #a1a1a6;
-  --primary: #2997ff;
-  --primary-soft: #0a2a47;
-  --receive: #30d158;
-  --receive-soft: #0f2e19;
-  --pay: #ff6b57;
-  --accent: #ff9f0a;
-  --accent-soft: #3a2a10;
-  --danger: #ff375f; /* 削除・エラー。「払う」と見分けられる色にする */
-  --warn-bg: #3a2e12;
-  --warn-text: #ffd479;
-  --on-color: #000000; /* 明るい色の背景(主ボタン・タブなど)の上の文字。白より黒の方がコントラストが高い */
+  --base: #f4fafc; /* 背景・カード・入力欄 */
+  --main: #0e86b4; /* 見出し・タブ・主ボタン・リンク */
+  --main-deep: #0b7099; /* メイン色の文字・白文字をのせる背景用。#0e86b4 だと白い面とのコントラストが4.5:1に届かない */
+  --main-soft: color-mix(in srgb, var(--main) 12%, var(--base)); /* タグ・表の見出しなどの薄い面 */
+  --accent: #ff8a3d; /* 「クイック割り勘」ボタンだけに使う */
+  --text: #12303f;
+  --text-sub: #4a6573;
+  --border: color-mix(in srgb, var(--main) 22%, var(--base));
+  --receive: #2e9e6b; /* 受け取る金額・名前だけに使う */
+  --pay: #e5533d; /* 払う金額・名前だけに使う */
+  /* 受け取る・払うの色は小さい文字だと薄いので、文字では少し濃くして使う */
+  --receive-text: color-mix(in srgb, var(--receive) 70%, black);
+  --pay-text: color-mix(in srgb, var(--pay) 75%, black);
+  --error: #b42318; /* 入力エラー。「払う」とは分ける */
+  --warn-bg: #fff4dc;
+  --warn-text: #8a5300;
+  --on-main: #ffffff; /* メイン色の背景の上の文字 */
   --line: #06c755; /* LINE のブランド色 */
   --on-line: #ffffff;
+  --card: color-mix(in srgb, var(--base) 85%, transparent);
+  --overlay: rgba(255, 255, 255, 0.35); /* 背景画像の上に重ねる白 */
+  --overlay-top: rgba(255, 255, 255, 0.55); /* 空の濃い青の上でも見出しが読めるよう、上端だけ白を濃くする */
+  --bg-image: none; /* main.tsx で import した画像を入れる */
   --font-body: -apple-system, BlinkMacSystemFont, 'Inter', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   --font-title: var(--font-body);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -31,12 +35,23 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--base);
   color: var(--text);
   font-family: var(--font-body);
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.6;
+}
+
+/* 背景画像は全画面に固定(background-attachment: fixed はスマホで効かないため疑似要素で) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(var(--overlay-top), var(--overlay) 45%),
+    var(--bg-image) center / cover no-repeat;
 }
 
 main {
@@ -55,13 +70,13 @@ h2 {
 h1 {
   font-size: 1.35rem;
   margin: 4px 0 2px;
-  color: var(--primary);
+  color: var(--text);
 }
 
 h2 {
   font-size: 1.05rem;
   margin: 0 0 8px;
-  color: var(--primary);
+  color: var(--main-deep);
 }
 
 /* トップページの見出し(タイトルと設定ボタンを1行に) */
@@ -80,7 +95,7 @@ h2 {
 
 .hero p {
   margin: 0;
-  color: var(--text-sub);
+  color: var(--text);
   font-size: 0.8rem;
 }
 
@@ -88,16 +103,24 @@ h2 {
   margin: 0 0 8px;
 }
 
+/* カードの外(背景画像の上)の文字は、薄い色だと空の青に沈むので本文色にする */
+.muted.subtitle,
+h2.view-title {
+  color: var(--text);
+}
+
 .card {
-  background: var(--surface);
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   padding: 12px 14px;
   margin-bottom: 12px;
 }
 
 .card.highlight {
-  border: 2px solid var(--accent);
+  border: 2px solid var(--main);
 }
 
 label {
@@ -131,7 +154,7 @@ select {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--surface-2);
+  background: var(--base);
   color: var(--text);
   font-weight: 400;
 }
@@ -142,13 +165,13 @@ input[type='radio'] {
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: var(--primary);
+  accent-color: var(--main);
 }
 
 input:focus,
 select:focus,
 button:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--main);
   outline-offset: 1px;
 }
 
@@ -167,7 +190,7 @@ button {
   padding: 8px 14px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface-2);
+  background: var(--base);
   color: var(--text);
   cursor: pointer;
   font-weight: 700;
@@ -179,20 +202,20 @@ button:disabled {
 }
 
 button.primary {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--on-color);
+  background: var(--main-deep);
+  border-color: var(--main-deep);
+  color: var(--on-main);
 }
 
 button.danger {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--text-sub);
+  border-color: var(--text-sub);
 }
 
 button.link {
   border: none;
   background: none;
-  color: var(--primary);
+  color: var(--main-deep);
   padding: 0;
   min-height: 0;
   text-align: left;
@@ -219,7 +242,7 @@ fieldset {
 legend {
   padding: 0 6px;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--main-deep);
 }
 
 .row {
@@ -263,9 +286,9 @@ legend {
 }
 
 .tabs button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-color);
+  background: var(--main-deep);
+  border-color: var(--main-deep);
+  color: var(--on-main);
 }
 
 .list {
@@ -299,19 +322,19 @@ legend {
   margin-left: 6px;
   padding: 0 8px;
   border-radius: 10px;
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--main-soft);
+  color: var(--main-deep);
   font-size: 0.75rem;
 }
 
 .tag.toll-auto {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--main-soft);
+  color: var(--main-deep);
 }
 
 .tag.toll-manual {
-  background: var(--receive-soft);
-  color: var(--receive);
+  background: var(--main-soft);
+  color: var(--main-deep);
 }
 
 /* 金額と通貨の切り替え */
@@ -346,8 +369,8 @@ legend {
 }
 
 .currency-switch button.on {
-  background: var(--primary);
-  color: var(--on-color);
+  background: var(--main-deep);
+  color: var(--on-main);
 }
 
 .route-actions {
@@ -359,7 +382,7 @@ legend {
 }
 
 .route-error {
-  color: var(--danger);
+  color: var(--error);
   font-size: 0.85rem;
 }
 
@@ -378,14 +401,14 @@ label.check {
 }
 
 .calc {
-  background: var(--receive-soft);
+  background: var(--main-soft);
   border-radius: 10px;
   padding: 8px 10px;
   margin: 0 0 12px;
 }
 
 .errors {
-  color: var(--danger);
+  color: var(--error);
   font-size: 0.85rem;
   padding-left: 20px;
 }
@@ -409,7 +432,7 @@ label.check {
   height: 30px;
   border-radius: 999px;
   overflow: hidden;
-  background: var(--surface-2);
+  background: var(--main-soft);
   border: 1px solid var(--border);
 }
 
@@ -417,7 +440,7 @@ label.check {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--on-color);
+  color: var(--on-main);
   font-size: 0.75rem;
   font-weight: 800;
   white-space: nowrap;
@@ -434,11 +457,11 @@ label.check {
 }
 
 .gauge-total .ok {
-  color: var(--receive);
+  color: var(--main-deep);
 }
 
 .gauge-total .ng {
-  color: var(--danger);
+  color: var(--error);
 }
 
 .pct-row {
@@ -518,7 +541,7 @@ td {
 }
 
 th {
-  background: var(--surface-2);
+  background: var(--main-soft);
 }
 
 th:first-child,
@@ -532,12 +555,12 @@ tfoot td {
 }
 
 td.plus {
-  color: var(--receive);
+  color: var(--receive-text);
   font-weight: 700;
 }
 
 td.minus {
-  color: var(--pay);
+  color: var(--pay-text);
   font-weight: 700;
 }
 
@@ -552,15 +575,15 @@ table.final td {
 
 /* 払う人・受け取る人の見出しを色で分ける(名前はメンバーの色のまま) */
 table.final th:first-child {
-  color: var(--pay);
+  color: var(--pay-text);
 }
 
 table.final th:nth-child(3) {
-  color: var(--receive);
+  color: var(--receive-text);
 }
 
 table.final td.arrow {
-  color: var(--accent);
+  color: var(--text-sub);
   font-weight: 800;
   text-align: center;
 }
@@ -720,7 +743,7 @@ table.final td.amount {
 .payer-chip {
   padding: 4px 12px 4px 6px;
   border: 2px solid var(--border);
-  background: var(--surface-2);
+  background: var(--base);
 }
 
 .payer-chip:not(.selected) {
@@ -729,8 +752,8 @@ table.final td.amount {
 
 .date-head {
   font-weight: 800;
-  color: var(--primary);
-  background: var(--surface-2);
+  color: var(--main-deep);
+  background: var(--main-soft);
   padding: 4px 8px !important;
   border-radius: 8px;
   border-top: none !important;
@@ -761,7 +784,7 @@ button.swap {
   margin: -4px 0 12px;
   padding: 4px 12px;
   font-size: 0.8rem;
-  color: var(--primary);
+  color: var(--main-deep);
 }
 
 /* イベント作成フォーム: 名前・種類・端数処理を詰めて並べる */
@@ -810,7 +833,7 @@ button.swap {
   border: none;
   border-radius: 999px;
   background: var(--accent);
-  color: var(--on-color);
+  color: var(--text);
   font-size: 1.05rem;
   font-weight: 800;
 }
@@ -851,7 +874,7 @@ button.swap {
 .quick-amount {
   font-size: 2.2rem;
   font-weight: 900;
-  color: var(--primary);
+  color: var(--main-deep);
   line-height: 1.3;
 }
 
@@ -901,7 +924,7 @@ button.more {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface-2);
+  background: var(--base);
   color: var(--text);
   font-size: 0.9rem;
   font-weight: 700;
@@ -915,16 +938,16 @@ button.more {
 }
 
 .share.sms {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--on-color);
+  background: var(--main-deep);
+  border-color: var(--main-deep);
+  color: var(--on-main);
 }
 
 /* PayPayの受け取りQR */
 .paypay-open {
   width: 100%;
   margin-top: 12px;
-  color: var(--primary);
+  color: var(--main-deep);
 }
 
 .paypay {
@@ -978,7 +1001,7 @@ details.split summary {
 }
 
 details.split summary strong {
-  color: var(--primary);
+  color: var(--main-deep);
 }
 
 details.split[open] summary {
@@ -1037,9 +1060,9 @@ details.split[open] summary {
 }
 
 .tier-chips button.on {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--on-color);
+  background: var(--main-deep);
+  border-color: var(--main-deep);
+  color: var(--on-main);
 }
 
 .pct-block .pct-row {
@@ -1064,7 +1087,7 @@ details.split[open] summary {
 }
 
 .collect-head .ok {
-  color: var(--receive);
+  color: var(--main-deep);
   font-weight: 700;
 }
 
