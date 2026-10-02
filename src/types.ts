@@ -1,7 +1,7 @@
 export type Member = {
   id: string;
   nickname: string;
-  avatar?: number; // アバター(顔の絵文字と色)の番号。未設定なら並び順
+  avatar?: number; // 色の番号(名前の頭文字のバッジと文字の色)。未設定なら並び順
 };
 
 export type Split =
@@ -77,6 +77,7 @@ export type AppSettings = {
   currencies: Currency[]; // 使う外貨
   gasolineModes: Exclude<GasolineMode, 'map'>[]; // 地図のほかに使うガソリン代の距離の入れ方
   paypayLink?: string; // 幹事のPayPay受け取りリンク(QRにして表示・共有文に添える)
+  paypayQrImage?: string; // 幹事のPayPay受け取りQRコードのスクショ(縮めた data URL。そのまま表示する)
 };
 
 export type Transfer ={ from: string; to: string; amount: number };

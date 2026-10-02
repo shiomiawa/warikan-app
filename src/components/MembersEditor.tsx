@@ -1,6 +1,6 @@
-import { MAX_MEMBERS, avatarIndex, freeAvatar, memberAvatar, newId } from '../format';
+import { MAX_MEMBERS, colorIndex, freeColor, memberColor, newId } from '../format';
 import type { Member } from '../types';
-import { Avatar } from './MemberName';
+import { MemberBadge } from './MemberName';
 
 export const MIN_MEMBERS = 2;
 
@@ -14,15 +14,15 @@ type Props = {
 const defaultName = (n: number) => `メンバー${n}`;
 const isDefaultName = (name: string) => /^メンバー\d+$/.test(name.trim());
 
-/** 人数の増減と、各メンバーの名前の変更。アバター(動物と色)は自動で割り当てる */
+/** 人数の増減と、各メンバーの名前の変更。色は自動で割り当てる */
 export default function MembersEditor({ members, onChange, removeBlocker = () => null }: Props) {
-  // 古いデータはアバター番号が並び順なので、増減でずれないよう今の番号を固定してから変更する
-  const fixed = () => members.map((m, i) => ({ ...m, avatar: avatarIndex(m, i) }));
+  // 古いデータは色の番号が並び順なので、増減でずれないよう今の番号を固定してから変更する
+  const fixed = () => members.map((m, i) => ({ ...m, avatar: colorIndex(m, i) }));
 
   const add = () => {
     if (members.length >= MAX_MEMBERS) return;
     const list = fixed();
-    onChange([...list, { id: newId(), nickname: defaultName(list.length + 1), avatar: freeAvatar(list) }]);
+    onChange([...list, { id: newId(), nickname: defaultName(list.length + 1), avatar: freeColor(list) }]);
   };
 
   const remove = (id: string) => {
@@ -61,13 +61,13 @@ export default function MembersEditor({ members, onChange, removeBlocker = () =>
       <ul className="member-rows">
         {members.map((m, i) => (
           <li key={m.id}>
-            <Avatar avatar={memberAvatar(members, m.id)} size="sm" />
+            <MemberBadge nickname={m.nickname} color={memberColor(members, m.id)} size="sm" />
             <input
               value={m.nickname}
               // 仮の名前(メンバー1など)は薄く表示し、タップしたら全選択してすぐ上書きできるようにする
               className={isDefaultName(m.nickname) ? 'default-name' : undefined}
               onFocus={(e) => isDefaultName(e.target.value) && e.target.select()}
-              style={{ color: memberAvatar(members, m.id).color }}
+              style={{ color: memberColor(members, m.id) }}
               onChange={(e) => rename(m.id, e.target.value)}
               onBlur={(e) => {
                 if (!e.target.value.trim()) rename(m.id, defaultName(i + 1));

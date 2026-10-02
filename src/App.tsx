@@ -86,6 +86,8 @@ export default function App() {
         onBack={() => setShowQuick(false)}
         paypayLink={data.settings.paypayLink ?? ''}
         onChangePaypayLink={(paypayLink) => updateSettings({ ...data.settings, paypayLink })}
+        paypayQrImage={data.settings.paypayQrImage ?? ''}
+        onChangePaypayQrImage={(paypayQrImage) => updateSettings({ ...data.settings, paypayQrImage })}
       />
     );
   }

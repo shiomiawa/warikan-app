@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { TIERS, equalPercents, tierPercents, type Tier } from '../calc';
-import { memberAvatar, yen } from '../format';
+import { memberColor, memberInitial, yen } from '../format';
 import type { Member, Split } from '../types';
 import MemberName from './MemberName';
 import NumberInput from './NumberInput';
@@ -43,7 +43,7 @@ export default function SplitEditor({
   const [open, setOpen] = useState(false);
   const ids = members.map((m) => m.id);
   const sum = percentTotal(percents, ids);
-  const color = (id: string) => memberAvatar(members, id).color;
+  const color = (id: string) => memberColor(members, id);
 
   // ワンタップ傾斜で選んだ段階。%を手で動かしたら選択を外す(null)
   const [tiers, setTiers] = useState<Record<string, Tier> | null>(null);
@@ -89,7 +89,7 @@ export default function SplitEditor({
                   style={{ width: `${percents[m.id]}%`, background: color(m.id) }}
                   title={`${m.nickname} ${percents[m.id]}%`}
                 >
-                  {percents[m.id] >= 6 ? memberAvatar(members, m.id).emoji : ''}
+                  {percents[m.id] >= 6 ? memberInitial(m.nickname) : ''}
                 </div>
               ) : null,
             )}

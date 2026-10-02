@@ -1,30 +1,31 @@
-import { AVATARS, memberAvatar } from '../format';
+import { memberColor, memberInitial } from '../format';
 import type { Member } from '../types';
 
-type AvatarProps = { avatar: (typeof AVATARS)[number]; size?: 'sm' | 'md' | 'lg' };
+type BadgeProps = { nickname: string; color: string; size?: 'sm' | 'md' | 'lg' };
 
-/** 淡い色の丸に動物の絵文字(枠線がメンバーの色) */
-export function Avatar({ avatar, size = 'md' }: AvatarProps) {
+/** メンバーの色の丸に、白い頭文字(仮の名前は番号) */
+export function MemberBadge({ nickname, color, size = 'md' }: BadgeProps) {
+  const initial = memberInitial(nickname);
   return (
     <span
-      className={`avatar avatar-${size}`}
-      style={{ background: `${avatar.color}1f`, borderColor: avatar.color }}
+      className={`member-badge member-badge-${size}${initial.length > 1 ? ' member-badge-long' : ''}`}
+      style={{ background: color }}
       aria-hidden="true"
     >
-      {avatar.emoji}
+      {initial}
     </span>
   );
 }
 
 type Props = { members: Member[]; id: string; size?: 'sm' | 'md' | 'lg' };
 
-/** アバターと、アバターと同じ色のニックネーム */
+/** 頭文字のバッジと、バッジと同じ色のニックネーム */
 export default function MemberName({ members, id, size = 'sm' }: Props) {
-  const avatar = memberAvatar(members, id);
+  const color = memberColor(members, id);
   const nickname = members.find((m) => m.id === id)?.nickname ?? '?';
   return (
-    <span className="member-name" style={{ color: avatar.color }}>
-      <Avatar avatar={avatar} size={size} />
+    <span className="member-name" style={{ color }}>
+      <MemberBadge nickname={nickname} color={color} size={size} />
       {nickname}
     </span>
   );

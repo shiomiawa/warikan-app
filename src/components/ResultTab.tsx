@@ -8,16 +8,22 @@ import {
   sortItemsNewestFirst,
   summarize,
 } from '../calc';
-import { CURRENCIES, formatDate, itemLabel, itemTitle, memberAvatar, money, yen } from '../format';
+import { CURRENCIES, formatDate, itemLabel, itemTitle, memberColor, money, yen } from '../format';
 import type { Currency, WarikanEvent } from '../types';
 import { withPaypayLink } from '../share';
 import MemberName from './MemberName';
 import PaypayQr from './PaypayQr';
 import ShareButtons from './ShareButtons';
 
-type Props = { event: WarikanEvent; paypayLink: string; onChangePaypayLink: (link: string) => void };
+type Props = {
+  event: WarikanEvent;
+  paypayLink: string;
+  onChangePaypayLink: (link: string) => void;
+  paypayQrImage: string;
+  onChangePaypayQrImage: (image: string) => void;
+};
 
-export default function ResultTab({ event, paypayLink, onChangePaypayLink }: Props) {  const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
+export default function ResultTab({ event, paypayLink, onChangePaypayLink, paypayQrImage, onChangePaypayQrImage }: Props) {  const nick = (id: string) => event.members.find((m) => m.id === id)?.nickname ?? '?';
 
   const rates = eventRates(event);
   const summary = summarize(event);
@@ -88,7 +94,14 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink }: Pro
           </div>
         )}
         {rateNotes.length > 0 && <p className="muted">換算レート：{rateNotes.join('、')}</p>}
-        {transfers.length > 0 && <PaypayQr link={paypayLink} onChange={onChangePaypayLink} />}
+        {transfers.length > 0 && (
+          <PaypayQr
+            link={paypayLink}
+            onChange={onChangePaypayLink}
+            image={paypayQrImage}
+            onChangeImage={onChangePaypayQrImage}
+          />
+        )}
         <ShareButtons text={shareText} />
       </section>
 
@@ -169,7 +182,7 @@ export default function ResultTab({ event, paypayLink, onChangePaypayLink }: Pro
                       <MemberName members={event.members} id={item.payerId} />
                     </td>
                     {event.members.map((m) => (
-                      <td key={m.id} style={{ color: memberAvatar(event.members, m.id).color }}>
+                      <td key={m.id} style={{ color: memberColor(event.members, m.id) }}>
                         {yen(shares[m.id] ?? 0)}
                       </td>
                     ))}

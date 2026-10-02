@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { itemTitle, normalizeNumber } from './format';
+import { MEMBER_COLORS, eventIcon, freeColor, itemTitle, memberInitial, normalizeNumber } from './format';
 import type { Item } from './types';
 
 describe('itemTitle', () => {
@@ -44,5 +44,48 @@ describe('normalizeNumber', () => {
     expect(normalizeNumber('１２．５', true)).toBe('12.5');
     expect(normalizeNumber('1.2.3', true)).toBe('1.23');
     expect(normalizeNumber('12.5', false)).toBe('125');
+  });
+});
+
+describe('memberInitial', () => {
+  it('名前の最初の1文字(英字は大文字)', () => {
+    expect(memberInitial('あや')).toBe('あ');
+    expect(memberInitial(' けん ')).toBe('け');
+    expect(memberInitial('tom')).toBe('T');
+  });
+
+  it('仮の名前と「◯人目」は番号にする', () => {
+    expect(memberInitial('メンバー12')).toBe('12');
+    expect(memberInitial('3人目')).toBe('3');
+  });
+
+  it('絵文字1つでも1文字として扱う', () => {
+    expect(memberInitial('🐶ポチ')).toBe('🐶');
+  });
+
+  it('空なら ?', () => {
+    expect(memberInitial('  ')).toBe('?');
+  });
+});
+
+describe('freeColor', () => {
+  const members = (avatars: number[]) => avatars.map((avatar, i) => ({ id: `m${i}`, nickname: '', avatar }));
+
+  it('まだ使われていない色を選ぶ', () => {
+    expect(freeColor(members([0, 1, 2]))).toBe(3);
+  });
+
+  it('10色を使い切ったら、いちばん使われていない色を選ぶ', () => {
+    const all = MEMBER_COLORS.map((_, i) => i);
+    expect(freeColor(members(all))).toBe(0);
+    expect(freeColor(members([...all, 0, 1]))).toBe(2);
+  });
+});
+
+describe('eventIcon', () => {
+  it('選択肢からはずした種類にもアイコンを出す', () => {
+    expect(eventIcon('ドライブ')).toBe('🚗');
+    expect(eventIcon('ゴルフ')).toBe('⛳');
+    expect(eventIcon('花見')).toBe('🎉');
   });
 });

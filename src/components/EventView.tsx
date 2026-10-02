@@ -83,6 +83,8 @@ export default function EventView({ event, settings, onChange, onChangeSettings,
               event={event}
               paypayLink={settings.paypayLink ?? ''}
               onChangePaypayLink={(paypayLink) => onChangeSettings({ ...settings, paypayLink })}
+              paypayQrImage={settings.paypayQrImage ?? ''}
+              onChangePaypayQrImage={(paypayQrImage) => onChangeSettings({ ...settings, paypayQrImage })}
             />
           )}
         </>

@@ -1,16 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ClipboardEvent } from 'react';
 import QRCode from 'qrcode';
+import { shrinkImage } from '../image';
 import { checkPaypayLink } from '../share';
 
-type Props = { link: string; onChange: (link: string) => void };
+type Props = {
+  link: string;
+  onChange: (link: string) => void;
+  image: string;
+  onChangeImage: (image: string) => void;
+};
 
 /**
  * 幹事がPayPayアプリで作った受け取り用リンクを貼ると、QRコードにして表示する。
- * リンクは設定に保存され、次回からは貼らなくてよい。
+ * リンクの代わりに、受け取りQRコードのスクショを貼ってそのまま表示することもできる。
+ * リンクもスクショも設定に保存され、次回からは貼らなくてよい。
  */
-export default function PaypayQr({ link, onChange }: Props) {
-  const [open, setOpen] = useState(!!link);
+export default function PaypayQr({ link, onChange, image, onChangeImage }: Props) {
+  const [open, setOpen] = useState(!!link || !!image);
   const [qr, setQr] = useState('');
+  const [imageError, setImageError] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
   const check = checkPaypayLink(link);
   const usable = check === 'paypay' || check === 'other';
 
@@ -28,6 +38,27 @@ export default function PaypayQr({ link, onChange }: Props) {
     };
   }, [link, usable]);
 
+  const takeImage = async (file: Blob | null | undefined) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setImageError('');
+    try {
+      onChangeImage(await shrinkImage(file));
+    } catch {
+      setImageError('画像を読み込めませんでした。別の画像を選んでください。');
+    }
+  };
+
+  // パソコンでは、コピーしたスクショをこの枠の中で Ctrl+V しても貼れる
+  const onPaste = (e: ClipboardEvent) => {
+    const file = Array.from(e.clipboardData.items)
+      .find((item) => item.type.startsWith('image/'))
+      ?.getAsFile();
+    if (file) {
+      e.preventDefault();
+      takeImage(file);
+    }
+  };
+
   if (!open) {
     return (
       <button type="button" className="paypay-open" onClick={() => setOpen(true)}>
@@ -37,7 +68,7 @@ export default function PaypayQr({ link, onChange }: Props) {
   }
 
   return (
-    <div className="paypay">
+    <div className="paypay" onPaste={onPaste}>
       <label>
         PayPayの受け取りリンク
         <input
@@ -48,7 +79,7 @@ export default function PaypayQr({ link, onChange }: Props) {
           placeholder="https://qr.paypay.ne.jp/…"
         />
       </label>
-      {check === 'empty' && (
+      {check === 'empty' && !image && (
         <p className="muted">
           PayPayアプリの「受け取る」でリンクをコピーして、ここに貼ってください。一度貼ると次回からは自動で入ります。
         </p>
@@ -67,6 +98,39 @@ export default function PaypayQr({ link, onChange }: Props) {
           </button>
         </div>
       )}
+
+      <div className="paypay-shot">
+        <span className="field-label">または、受け取りQRコードのスクショ</span>
+        {image ? (
+          <div className="paypay-qr">
+            <img src={image} alt="PayPayの受け取りQRコードのスクショ" className="paypay-shot-image" />
+            <p className="muted">みんなのスマホのカメラで、画像のQRコードを読み取ってもらってください。</p>
+            <button type="button" className="link clear-link" onClick={() => onChangeImage('')}>
+              スクショを消す
+            </button>
+          </div>
+        ) : (
+          <>
+            <button type="button" className="wide" onClick={() => fileInput.current?.click()}>
+              🖼️ スクショを選ぶ
+            </button>
+            <p className="muted">
+              PayPayアプリの「受け取る」画面のスクショを選んでください。パソコンでは、コピーした画像をここで貼り付け（Ctrl+V）もできます。
+            </p>
+          </>
+        )}
+        {imageError && <p className="route-error">{imageError}</p>}
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            takeImage(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+      </div>
     </div>
   );
 }

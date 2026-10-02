@@ -40,6 +40,11 @@
   box-sizing: border-box;
 }
 
+/* hidden を付けた要素は、入力欄などの display 指定より優先して隠す */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -616,33 +621,52 @@ table.final td.amount {
   font-size: 1.1rem;
 }
 
-/* アバター */
-.avatar {
+/* メンバーの頭文字のバッジ(背景はメンバーの色、文字は白) */
+.member-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  border: 2px solid transparent;
   border-radius: 50%;
+  color: var(--on-avatar);
+  font-weight: 700;
   line-height: 1;
 }
 
-.avatar-sm {
+.member-badge-sm {
   width: 22px;
   height: 22px;
+  font-size: 12px;
+}
+
+.member-badge-md {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+.member-badge-lg {
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+}
+
+/* 2桁の番号は少し小さくして丸に収める */
+.member-badge-long {
+  font-family: var(--font-num);
+  letter-spacing: -0.04em;
+}
+
+.member-badge-sm.member-badge-long {
+  font-size: 10px;
+}
+
+.member-badge-md.member-badge-long {
   font-size: 13px;
 }
 
-.avatar-md {
-  width: 32px;
-  height: 32px;
-  font-size: 19px;
-}
-
-.avatar-lg {
-  width: 44px;
-  height: 44px;
-  font-size: 26px;
+.member-badge-lg.member-badge-long {
+  font-size: 18px;
 }
 
 .member-name {
@@ -1001,6 +1025,23 @@ button.more {
 .paypay-qr img {
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+/* PayPay の受け取りQRコードのスクショ */
+.paypay-shot {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.paypay-shot .wide {
+  margin-top: 0;
+}
+
+.paypay-shot-image {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
 }
 
 .clear-link {

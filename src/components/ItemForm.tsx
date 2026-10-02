@@ -17,7 +17,7 @@ import {
   OTHER,
   itemLabel,
   itemTitle,
-  memberAvatar,
+  memberColor,
   money,
   newId,
   normalizeNumber,
@@ -85,7 +85,7 @@ export default function ItemForm({ event, gasolineModes, item, onSave, onCancel 
 
   const [date, setDate] = useState(item ? (item.date ?? '') : today());
   const [name, setName] = useState(item?.name ?? '');
-  const color = (id: string) => memberAvatar(members, id).color;
+  const color = (id: string) => memberColor(members, id);
   const [payerId, setPayerId] = useState(item?.payerId ?? members[0].id);
   const [currency, setCurrency] = useState<Currency>(item?.currency ?? 'JPY');
   const [amount, setAmount] = useState(item?.kind === 'normal' ? str(item.amount) : '');

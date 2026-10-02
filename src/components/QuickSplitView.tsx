@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { amountSplitDiff, equalPercents, itemShares, quickSplit } from '../calc';
-import { AVATARS, roundTo, toNum, yen } from '../format';
+import { MEMBER_COLORS, roundTo, toNum, yen } from '../format';
 import type { Item, Member, Rounding, Split, WarikanEvent } from '../types';
 import { rangeWarning } from '../checks';
 import { withPaypayLink } from '../share';
@@ -12,7 +12,13 @@ import PaypayQr from './PaypayQr';
 import ShareButtons from './ShareButtons';
 import SplitEditor, { percentTotal } from './SplitEditor';
 
-type Props = { onBack: () => void; paypayLink: string; onChangePaypayLink: (link: string) => void };
+type Props = {
+  onBack: () => void;
+  paypayLink: string;
+  onChangePaypayLink: (link: string) => void;
+  paypayQrImage: string;
+  onChangePaypayQrImage: (image: string) => void;
+};
 
 const MIN_PEOPLE = 2;
 const MAX_PEOPLE = 50;
@@ -23,11 +29,17 @@ const quickMembers = (n: number): Member[] =>
   Array.from({ length: n }, (_, i) => ({
     id: `q${i + 1}`,
     nickname: i === 0 ? '幹事' : `${i + 1}人目`,
-    avatar: i % AVATARS.length,
+    avatar: i % MEMBER_COLORS.length,
   }));
 
 /** イベントを作らずに、その場で1回だけ割り勘する画面(保存しない) */
-export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink }: Props) {
+export default function QuickSplitView({
+  onBack,
+  paypayLink,
+  onChangePaypayLink,
+  paypayQrImage,
+  onChangePaypayQrImage,
+}: Props) {
   const [people, setPeople] = useState(2);
   const [total, setTotal] = useState('');
   const [rounding, setRounding] = useState<Rounding>(1);
@@ -233,7 +245,12 @@ export default function QuickSplitView({ onBack, paypayLink, onChangePaypayLink 
         )}
         {text && (
           <>
-            <PaypayQr link={paypayLink} onChange={onChangePaypayLink} />
+            <PaypayQr
+              link={paypayLink}
+              onChange={onChangePaypayLink}
+              image={paypayQrImage}
+              onChangeImage={onChangePaypayQrImage}
+            />
             <ShareButtons text={text} />
           </>
         )}

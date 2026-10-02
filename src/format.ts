@@ -22,11 +22,16 @@ const EVENT_KIND_ICONS: Record<string, string> = {
   旅行: '✈️',
   飲み会: '🍻',
   食事会: '🍽️',
+  ショッピング: '🛍️',
+  ドライブ: '🚗',
+};
+/** 選択肢からはずした種類。以前のイベントにはこのアイコンを出し続ける */
+const OLD_EVENT_KIND_ICONS: Record<string, string> = {
   'BBQ・キャンプ': '🏕️',
   ゴルフ: '⛳',
 };
 export const EVENT_KINDS = Object.keys(EVENT_KIND_ICONS);
-export const eventIcon = (kind: string): string => EVENT_KIND_ICONS[kind] ?? '🎉';
+export const eventIcon = (kind: string): string => EVENT_KIND_ICONS[kind] ?? OLD_EVENT_KIND_ICONS[kind] ?? '🎉';
 
 const ITEM_CATEGORY_ICONS: Record<string, string> = {
   '食事・飲み会': '🍽️',
@@ -63,38 +68,51 @@ export function itemTitle(item: Item): string {
   return item.category ?? OTHER;
 }
 
-export const MAX_MEMBERS = 10;
+export const MAX_MEMBERS = 30;
 
 /**
- * メンバーのアバター(動物の絵文字と色)。赤系は避け、見分けやすい落ち着いた色にしている。
- * 文字色にも使うので、明るい背景で読める濃さにしている。
+ * メンバーの色。赤系は避け、見分けやすい落ち着いた色にしている。
+ * 文字色にも、白い頭文字をのせるバッジの背景にも使うので、明るい背景で読める濃さにしている。
+ * 10人を超えたら同じ色をもう一度使う(頭文字で見分ける)。
  */
-export const AVATARS = [
-  { emoji: '🐶', color: '#256b29' }, // 緑
-  { emoji: '🐱', color: '#1565c0' }, // 青
-  { emoji: '🐻', color: '#9a4d00' }, // オレンジ
-  { emoji: '🐼', color: '#795548' }, // 茶
-  { emoji: '🦊', color: '#006a5e' }, // 青緑
-  { emoji: '🐰', color: '#303f9f' }, // 紺
-  { emoji: '🐨', color: '#7d5d00' }, // からし
-  { emoji: '🐸', color: '#536b17' }, // オリーブ
-  { emoji: '🐵', color: '#4a616c' }, // 青灰
-  { emoji: '🐧', color: '#6a4c93' }, // 紫
+export const MEMBER_COLORS = [
+  '#256b29', // 緑
+  '#1565c0', // 青
+  '#9a4d00', // オレンジ
+  '#795548', // 茶
+  '#006a5e', // 青緑
+  '#303f9f', // 紺
+  '#7d5d00', // からし
+  '#536b17', // オリーブ
+  '#4a616c', // 青灰
+  '#6a4c93', // 紫
 ];
 
-/** メンバーのアバター番号。古いデータで未設定なら並び順を使う */
-export const avatarIndex = (m: Member, order: number): number => (m.avatar ?? order) % AVATARS.length;
+/** メンバーの色の番号(保存データの avatar)。古いデータで未設定なら並び順を使う */
+export const colorIndex = (m: Member, order: number): number => (m.avatar ?? order) % MEMBER_COLORS.length;
 
-export function memberAvatar(members: Member[], id: string) {
+export function memberColor(members: Member[], id: string): string {
   const order = members.findIndex((m) => m.id === id);
-  return AVATARS[order < 0 ? 0 : avatarIndex(members[order], order)];
+  return MEMBER_COLORS[order < 0 ? 0 : colorIndex(members[order], order)];
 }
 
-/** まだ誰も使っていない最初のアバター番号 */
-export function freeAvatar(members: Member[]): number {
-  const used = new Set(members.map(avatarIndex));
-  const free = AVATARS.findIndex((_, i) => !used.has(i));
-  return free < 0 ? 0 : free;
+/** いちばん使われていない色の番号(同じ数なら番号の小さい方) */
+export function freeColor(members: Member[]): number {
+  const counts = MEMBER_COLORS.map(() => 0);
+  members.forEach((m, i) => counts[colorIndex(m, i)]++);
+  return counts.indexOf(Math.min(...counts));
+}
+
+/**
+ * バッジに出す頭文字。名前の最初の1文字(英字は大文字)。
+ * 仮の名前(メンバー12)やクイック割り勘の「2人目」は頭文字がそろうので番号にする。
+ */
+export function memberInitial(nickname: string): string {
+  const name = nickname.trim();
+  const numbered = name.match(/^メンバー(\d+)$/) ?? name.match(/^(\d+)人目$/);
+  if (numbered) return numbered[1];
+  const first = Array.from(name)[0];
+  return first ? first.toUpperCase() : '?';
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
