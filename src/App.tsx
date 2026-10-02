@@ -4,6 +4,7 @@ import { EVENT_KINDS, eventIcon, formatDate, newId } from './format';
 import { loadData, saveData } from './storage';
 import type { AppSettings, Member, Rounding, WarikanEvent } from './types';
 import EventView from './components/EventView';
+import HelpView from './components/HelpView';
 import BackgroundDecor from './components/illustrations/BackgroundDecor';
 import Calculator from './components/illustrations/Calculator';
 import CalculatorWithSuitcase from './components/illustrations/CalculatorWithSuitcase';
@@ -34,6 +35,7 @@ export default function App() {
   // 作成後に種類の入力欄を初期状態に戻すためのキー
   const [formKey, setFormKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
@@ -92,6 +94,23 @@ export default function App() {
     );
   }
 
+  if (showHelp) {
+    return (
+      <main>
+        <div className="topbar">
+          <button className="link back" onClick={() => setShowHelp(false)}>
+            ← トップへ
+          </button>
+        </div>
+        <h1>📖 使い方</h1>
+        <HelpView />
+        <button className="primary wide" onClick={() => setShowHelp(false)}>
+          トップへ戻る
+        </button>
+      </main>
+    );
+  }
+
   if (showSettings) {
     return (
       <main>
@@ -120,9 +139,14 @@ export default function App() {
             <p>立て替えをまとめてスッキリ精算</p>
           </div>
         </div>
-        <button className="edit-button" onClick={() => setShowSettings(true)}>
-          ⚙️ 設定
-        </button>
+        <div className="hero-buttons">
+          <button className="edit-button" onClick={() => setShowHelp(true)}>
+            📖 使い方
+          </button>
+          <button className="edit-button" onClick={() => setShowSettings(true)}>
+            ⚙️ 設定
+          </button>
+        </div>
       </header>
 
       <button className="quick-button" onClick={() => setShowQuick(true)}>

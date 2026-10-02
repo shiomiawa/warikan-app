@@ -1633,3 +1633,38 @@ table.final .settled-label {
   margin-bottom: 8px;
 }
 
+/* トップの「使い方」「設定」ボタン */
+.hero-buttons {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.hero-buttons .edit-button {
+  min-height: 36px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* スマホでは見出しが折り返さないよう、ボタンを縦に並べる */
+@media (max-width: 480px) {
+  .hero-buttons {
+    flex-direction: column;
+  }
+}
+
+/* 使い方のページ */
+.help p {
+  margin: 0 0 8px;
+}
+
+.help-steps {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.help-steps li {
+  margin-bottom: 6px;
+}
+
