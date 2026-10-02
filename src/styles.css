@@ -2,7 +2,7 @@
 :root {
   --base: #f4fafc; /* 背景・カード・入力欄 */
   --main: #0e86b4; /* 見出し・タブ・主ボタン・リンク */
-  --main-deep: #0b7099; /* メイン色の文字・白文字をのせる背景用。#0e86b4 だと白い面とのコントラストが4.5:1に届かない */
+  --main-deep: #0a6a92; /* メイン色の文字・白文字をのせる背景用。#0e86b4 だと白い面とのコントラストが4.5:1に届かない(海の上のカードでも届くよう少し濃くしている) */
   --main-soft: color-mix(in srgb, var(--main) 12%, var(--base)); /* タグ・表の見出しなどの薄い面 */
   --accent: #ff8a3d; /* 「クイック割り勘」ボタンだけに使う */
   --text: #12303f;
@@ -22,6 +22,8 @@
   --card: color-mix(in srgb, var(--base) 85%, transparent);
   --overlay: rgba(255, 255, 255, 0.35); /* 背景画像の上に重ねる白 */
   --overlay-top: rgba(255, 255, 255, 0.55); /* 空の濃い青の上でも見出しが読めるよう、上端だけ白を濃くする */
+  --overlay-sea: rgba(255, 255, 255, 0.1); /* 海の上は白を薄くして、海の青を残す */
+  --sea-tint: rgba(10, 79, 160, 0.4); /* 海に重ねる濃い青(手前ほど濃くする) */
   --bg-image: none; /* main.tsx で import した画像を入れる */
   /* 背景画像の水平線の位置(上から約73%)。PC の横長画面でも、写真の水平線が画面のこの高さに来るようにする */
   --horizon: 73%;
@@ -62,7 +64,8 @@ body::before {
   height: 100lvh;
   z-index: -1;
   background:
-    linear-gradient(var(--overlay-top), var(--overlay) 45%),
+    linear-gradient(var(--overlay-top), var(--overlay) 45%, var(--overlay) var(--horizon), var(--overlay-sea) calc(var(--horizon) + 4%)),
+    linear-gradient(transparent var(--horizon), var(--sea-tint)),
     var(--bg-image) center var(--horizon) / cover no-repeat;
   filter: var(--bg-filter);
 }
