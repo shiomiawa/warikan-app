@@ -26,8 +26,9 @@
   /* 背景画像の水平線の位置(上から約73%)。PC の横長画面でも、写真の水平線が画面のこの高さに来るようにする */
   --horizon: 73%;
   --bg-filter: brightness(1.12) saturate(1.15); /* 背景の青を明るく鮮やかにする */
-  --font-body: -apple-system, BlinkMacSystemFont, 'Inter', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
-  /* 見出しとクイック割り勘ボタンだけ丸文字にする。Kiwi Maru は太字(700)がなく数字の幅もそろわないので、本文と金額には使わない */
+  /* 本文は丸ゴシック。太字があり、数字の幅がそろっている(金額の桁がそろう) */
+  --font-body: 'M PLUS Rounded 1c', -apple-system, BlinkMacSystemFont, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
+  /* 見出しとクイック割り勘ボタンは Kiwi Maru。太字(700)がなく数字の幅もそろわないので、本文と金額には使わない */
   --font-title: 'Kiwi Maru', var(--font-body);
   color-scheme: light;
 }
