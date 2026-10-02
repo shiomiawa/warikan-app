@@ -1,18 +1,27 @@
+/* 色はすべてここの変数から指定する(CSS内に色を直書きしない) */
 :root {
-  --bg: #eaf6fb;
-  --card: #ffffff;
-  --text: #1f2d3d;
-  --muted: #5f6b7a;
-  --primary: #0a84c1;
-  --primary-dark: #07669a;
-  --accent: #ff8a3d;
-  --danger: #d93838;
-  --border: #cfe3ee;
-  --warn-bg: #fff4dc;
-  --ok: #1f9d55;
-  --font-body: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e; /* 入力欄・ボタン・表の見出しなど、カードの上に重ねる面 */
+  --border: #38383a;
+  --text: #f5f5f7;
+  --text-sub: #a1a1a6;
+  --primary: #2997ff;
+  --primary-soft: #0a2a47;
+  --receive: #30d158;
+  --receive-soft: #0f2e19;
+  --pay: #ff6b57;
+  --accent: #ff9f0a;
+  --accent-soft: #3a2a10;
+  --danger: #ff375f; /* 削除・エラー。「払う」と見分けられる色にする */
+  --warn-bg: #3a2e12;
+  --warn-text: #ffd479;
+  --on-color: #000000; /* 明るい色の背景(主ボタン・タブなど)の上の文字。白より黒の方がコントラストが高い */
+  --line: #06c755; /* LINE のブランド色 */
+  --on-line: #ffffff;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Inter', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   --font-title: var(--font-body);
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {
@@ -25,6 +34,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-weight: 400;
+  letter-spacing: -0.01em;
   line-height: 1.6;
 }
 
@@ -37,20 +48,20 @@ main {
 h1,
 h2 {
   font-family: var(--font-title);
-  font-weight: 900;
-  letter-spacing: 0.01em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 h1 {
   font-size: 1.35rem;
   margin: 4px 0 2px;
-  color: var(--primary-dark);
+  color: var(--primary);
 }
 
 h2 {
   font-size: 1.05rem;
   margin: 0 0 8px;
-  color: var(--primary-dark);
+  color: var(--primary);
 }
 
 /* トップページの見出し(タイトルと設定ボタンを1行に) */
@@ -69,7 +80,7 @@ h2 {
 
 .hero p {
   margin: 0;
-  color: var(--muted);
+  color: var(--text-sub);
   font-size: 0.8rem;
 }
 
@@ -78,7 +89,7 @@ h2 {
 }
 
 .card {
-  background: var(--card);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 14px;
@@ -120,7 +131,7 @@ select {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface-2);
   color: var(--text);
   font-weight: 400;
 }
@@ -135,7 +146,8 @@ input[type='radio'] {
 }
 
 input:focus,
-select:focus {
+select:focus,
+button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
@@ -146,7 +158,7 @@ label.inline input {
 
 .unit {
   flex: 0 0 auto;
-  color: var(--muted);
+  color: var(--text-sub);
   font-weight: 400;
 }
 
@@ -155,7 +167,7 @@ button {
   padding: 8px 14px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface-2);
   color: var(--text);
   cursor: pointer;
   font-weight: 700;
@@ -169,7 +181,7 @@ button:disabled {
 button.primary {
   background: var(--primary);
   border-color: var(--primary);
-  color: #fff;
+  color: var(--on-color);
 }
 
 button.danger {
@@ -180,7 +192,7 @@ button.danger {
 button.link {
   border: none;
   background: none;
-  color: var(--primary-dark);
+  color: var(--primary);
   padding: 0;
   min-height: 0;
   text-align: left;
@@ -207,7 +219,7 @@ fieldset {
 legend {
   padding: 0 6px;
   font-weight: 800;
-  color: var(--primary-dark);
+  color: var(--primary);
 }
 
 .row {
@@ -253,7 +265,7 @@ legend {
 .tabs button.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-color);
 }
 
 .list {
@@ -277,7 +289,7 @@ legend {
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--text-sub);
   font-size: 0.85rem;
   font-weight: 400;
 }
@@ -287,19 +299,19 @@ legend {
   margin-left: 6px;
   padding: 0 8px;
   border-radius: 10px;
-  background: #e0f2fb;
-  color: var(--primary-dark);
+  background: var(--primary-soft);
+  color: var(--primary);
   font-size: 0.75rem;
 }
 
 .tag.toll-auto {
-  background: #fff3e0;
-  color: #b84a00;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .tag.toll-manual {
-  background: #e3f6ea;
-  color: #1b5e20;
+  background: var(--receive-soft);
+  color: var(--receive);
 }
 
 /* 金額と通貨の切り替え */
@@ -330,12 +342,12 @@ legend {
   border: none;
   border-radius: 0;
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--text-sub);
 }
 
 .currency-switch button.on {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-color);
 }
 
 .route-actions {
@@ -361,12 +373,12 @@ label.check {
 .attribution {
   margin: 12px 0 0;
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text-sub);
   text-align: right;
 }
 
 .calc {
-  background: #eaf8ef;
+  background: var(--receive-soft);
   border-radius: 10px;
   padding: 8px 10px;
   margin: 0 0 12px;
@@ -397,7 +409,7 @@ label.check {
   height: 30px;
   border-radius: 999px;
   overflow: hidden;
-  background: #e8eef2;
+  background: var(--surface-2);
   border: 1px solid var(--border);
 }
 
@@ -405,7 +417,7 @@ label.check {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--on-color);
   font-size: 0.75rem;
   font-weight: 800;
   white-space: nowrap;
@@ -422,7 +434,7 @@ label.check {
 }
 
 .gauge-total .ok {
-  color: var(--ok);
+  color: var(--receive);
 }
 
 .gauge-total .ng {
@@ -461,7 +473,7 @@ label.check {
   flex: 0 0 5.5em;
   text-align: right;
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--text-sub);
 }
 
 .dot {
@@ -476,6 +488,19 @@ label.check {
 
 .table-wrap {
   overflow-x: auto;
+}
+
+/* 金額は数字の幅をそろえて桁が縦にそろうようにする */
+table,
+.item-amount,
+.quick-amount,
+.quick-shares,
+.collect,
+.pct-yen,
+.gauge-total,
+.amount-row input,
+.quick-total input {
+  font-variant-numeric: tabular-nums;
 }
 
 table {
@@ -493,7 +518,7 @@ td {
 }
 
 th {
-  background: #f1f8fc;
+  background: var(--surface-2);
 }
 
 th:first-child,
@@ -507,12 +532,12 @@ tfoot td {
 }
 
 td.plus {
-  color: var(--ok);
+  color: var(--receive);
   font-weight: 700;
 }
 
 td.minus {
-  color: var(--danger);
+  color: var(--pay);
   font-weight: 700;
 }
 
@@ -523,6 +548,15 @@ table.final {
 table.final td {
   padding: 10px 8px;
   text-align: left;
+}
+
+/* 払う人・受け取る人の見出しを色で分ける(名前はメンバーの色のまま) */
+table.final th:first-child {
+  color: var(--pay);
+}
+
+table.final th:nth-child(3) {
+  color: var(--receive);
 }
 
 table.final td.arrow {
@@ -656,7 +690,7 @@ table.final td.amount {
   min-height: 28px;
   padding: 0;
   border: none;
-  color: var(--muted);
+  color: var(--text-sub);
   font-size: 0.8rem;
 }
 
@@ -686,7 +720,7 @@ table.final td.amount {
 .payer-chip {
   padding: 4px 12px 4px 6px;
   border: 2px solid var(--border);
-  background: #fff;
+  background: var(--surface-2);
 }
 
 .payer-chip:not(.selected) {
@@ -695,8 +729,8 @@ table.final td.amount {
 
 .date-head {
   font-weight: 800;
-  color: var(--primary-dark);
-  background: #f1f8fc;
+  color: var(--primary);
+  background: var(--surface-2);
   padding: 4px 8px !important;
   border-radius: 8px;
   border-top: none !important;
@@ -727,7 +761,7 @@ button.swap {
   margin: -4px 0 12px;
   padding: 4px 12px;
   font-size: 0.8rem;
-  color: var(--primary-dark);
+  color: var(--primary);
 }
 
 /* イベント作成フォーム: 名前・種類・端数処理を詰めて並べる */
@@ -776,7 +810,7 @@ button.swap {
   border: none;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-color);
   font-size: 1.05rem;
   font-weight: 800;
 }
@@ -817,7 +851,7 @@ button.swap {
 .quick-amount {
   font-size: 2.2rem;
   font-weight: 900;
-  color: var(--primary-dark);
+  color: var(--primary);
   line-height: 1.3;
 }
 
@@ -840,7 +874,7 @@ button.swap {
 }
 
 .event-date {
-  color: var(--muted);
+  color: var(--text-sub);
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -867,7 +901,7 @@ button.more {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface-2);
   color: var(--text);
   font-size: 0.9rem;
   font-weight: 700;
@@ -875,22 +909,22 @@ button.more {
 }
 
 .share.line {
-  background: #06c755;
-  border-color: #06c755;
-  color: #fff;
+  background: var(--line);
+  border-color: var(--line);
+  color: var(--on-line);
 }
 
 .share.sms {
   background: var(--primary);
   border-color: var(--primary);
-  color: #fff;
+  color: var(--on-color);
 }
 
 /* PayPayの受け取りQR */
 .paypay-open {
   width: 100%;
   margin-top: 12px;
-  color: var(--primary-dark);
+  color: var(--primary);
 }
 
 .paypay {
@@ -916,7 +950,7 @@ button.more {
 
 .clear-link {
   font-size: 0.8rem;
-  color: var(--muted) !important;
+  color: var(--text-sub) !important;
 }
 
 /* 通常と大きく外れた入力の注意 */
@@ -925,7 +959,7 @@ button.more {
   padding: 6px 10px;
   border-radius: 8px;
   background: var(--warn-bg);
-  color: #8a5300;
+  color: var(--warn-text);
   font-size: 0.8rem;
 }
 
@@ -944,7 +978,7 @@ details.split summary {
 }
 
 details.split summary strong {
-  color: var(--primary-dark);
+  color: var(--primary);
 }
 
 details.split[open] summary {
@@ -999,13 +1033,13 @@ details.split[open] summary {
   padding: 2px 10px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text-sub);
 }
 
 .tier-chips button.on {
   background: var(--primary);
   border-color: var(--primary);
-  color: #fff;
+  color: var(--on-color);
 }
 
 .pct-block .pct-row {
@@ -1030,7 +1064,7 @@ details.split[open] summary {
 }
 
 .collect-head .ok {
-  color: var(--ok);
+  color: var(--receive);
   font-weight: 700;
 }
 
