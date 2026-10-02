@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   eventRates,
   itemAmount,
@@ -10,7 +11,15 @@ import {
 } from '../calc';
 import { CURRENCIES, formatDate, itemLabel, itemTitle, memberColor, money, yen } from '../format';
 import type { Currency, WarikanEvent } from '../types';
-import { memberPaypayLink, organizerIdOf, transferKey, usableLink, withPaypayLink } from '../share';
+import {
+  balanceLabel,
+  detailLines,
+  memberPaypayLink,
+  organizerIdOf,
+  transferKey,
+  usableLink,
+  withPaypayLink,
+} from '../share';
 import MemberName from './MemberName';
 import PaypayQr from './PaypayQr';
 import SendList from './SendList';
@@ -56,6 +65,8 @@ export default function ResultTab({
   const rateNotes = usedCurrencies.map((c) => `1${CURRENCIES[c].unit}＝${rates[c]}円`);
   const total = event.items.reduce((a, i) => a + itemAmount(i, rates), 0);
   const paid = new Set(event.paidTransfers ?? []);
+  // 幹事だけが中身を知っている状態にならないよう、明細も入れて送るのを基本にする
+  const [withDetails, setWithDetails] = useState(true);
 
   const text = [
     `【${event.name}】精算結果`,
@@ -67,6 +78,24 @@ export default function ResultTab({
           `${nick(t.from)} → ${nick(t.to)}：${yen(t.amount)}${paid.has(transferKey(t)) ? '（精算済）' : ''}`,
           ...(receiverLink(t.to) ? [`　PayPay（${nick(t.to)}さん）：${receiverLink(t.to)}`] : []),
         ])),
+    ...(withDetails
+      ? [
+          '',
+          ...detailLines(
+            sortItemsNewestFirst(event.items).map((item) => {
+              const cur = itemCurrency(item);
+              return {
+                date: formatDate(item.date),
+                title: itemTitle(item),
+                amount: itemAmount(item, rates),
+                original: cur !== 'JPY' ? money(itemOriginalAmount(item), cur) : undefined,
+                payer: nick(item.payerId),
+              };
+            }),
+            event.members.map((m) => ({ name: m.nickname, ...summary[m.id] })),
+          ),
+        ]
+      : []),
     ...(rateNotes.length > 0 ? ['', `※換算レート：${rateNotes.join('、')}`] : []),
     ...(autoTolls.length > 0 ? ['※高速代に自動計算（目安）の項目があります'] : []),
   ].join('\n');
@@ -141,6 +170,15 @@ export default function ResultTab({
             onChangeImage={onChangePaypayQrImage}
           />
         )}
+        <label className="check share-option">
+          <input type="checkbox" checked={withDetails} onChange={(e) => setWithDetails(e.target.checked)} />
+          明細と各人の収支も入れて送る
+        </label>
+        {withDetails && (
+          <p className="muted share-hint">
+            項目が多くて LINE の画面で途中までしか入らないときは、「コピー」して LINE に貼り付けてください。
+          </p>
+        )}
         <ShareButtons text={shareText} />
       </section>
 
@@ -167,7 +205,7 @@ export default function ResultTab({
                     <td>{yen(s.paid)}</td>
                     <td>{yen(s.share)}</td>
                     <td className={s.balance > 0 ? 'plus' : s.balance < 0 ? 'minus' : ''}>
-                      {s.balance > 0 ? `${yen(s.balance)} 受け取る` : s.balance < 0 ? `${yen(-s.balance)} 払う` : '±0'}
+                      {balanceLabel(s.balance)}
                     </td>
                   </tr>
                 );

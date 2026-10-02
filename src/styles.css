@@ -1591,3 +1591,13 @@ table.final .settled-label {
   width: fit-content;
   margin: 4px 0 0 auto;
 }
+
+/* 全体の共有文に明細を入れるかどうか */
+.share-option {
+  margin: 14px 0 0;
+}
+
+.share-hint {
+  margin: 4px 0 0;
+}
+

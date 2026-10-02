@@ -85,3 +85,25 @@ export function collectLinksText(eventName: string, receivers: Payment[], organi
     ...receivers.map((r) => `・${r.name}さん（${yen(r.amount)} 受け取り）`),
   ].join('\n');
 }
+
+export type DetailItem = { date: string; title: string; amount: number; original?: string; payer: string };
+export type DetailMember = { name: string; paid: number; share: number; balance: number };
+
+/** 「◯円 受け取る」「◯円 払う」「±0」 */
+export const balanceLabel = (balance: number): string =>
+  balance > 0 ? `${yen(balance)} 受け取る` : balance < 0 ? `${yen(-balance)} 払う` : '±0';
+
+/**
+ * 共有する文に入れる明細(項目ごと)と各人の収支。幹事だけが中身を知っている状態にならないよう、全員に送れるようにする。
+ * 外貨の項目は「$20.00＝3,000円」のように元の金額も出す
+ */
+export function detailLines(items: DetailItem[], members: DetailMember[]): string[] {
+  return [
+    '■ 明細',
+    ...items.map((i) => `${i.date} ${i.title}：${i.original ? `${i.original}＝${yen(i.amount)}` : yen(i.amount)}（${i.payer}が立て替え）`),
+    '',
+    '■ 各人の収支',
+    ...members.map((m) => `${m.name}：立て替え ${yen(m.paid)}／負担 ${yen(m.share)} → ${balanceLabel(m.balance)}`),
+  ];
+}
+

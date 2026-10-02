@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  balanceLabel,
   checkPaypayLink,
   collectLinksText,
+  detailLines,
   lineShareUrl,
   memberPaypayLink,
   organizerIdOf,
@@ -141,3 +143,37 @@ describe('organizerIdOf', () => {
     expect(organizerIdOf(event('x'))).toBe('a');
   });
 });
+
+describe('detailLines', () => {
+  it('項目ごとの明細と、各人の収支を並べる', () => {
+    expect(
+      detailLines(
+        [
+          { date: '9/30(水)', title: '宿泊', amount: 40000, payer: 'けん' },
+          { date: '9/29(火)', title: '食事', amount: 3000, original: '$20.00', payer: 'あや' },
+        ],
+        [
+          { name: 'あや', paid: 3000, share: 21500, balance: -18500 },
+          { name: 'けん', paid: 40000, share: 21500, balance: 18500 },
+        ],
+      ),
+    ).toEqual([
+      '■ 明細',
+      '9/30(水) 宿泊：40,000円（けんが立て替え）',
+      '9/29(火) 食事：$20.00＝3,000円（あやが立て替え）',
+      '',
+      '■ 各人の収支',
+      'あや：立て替え 3,000円／負担 21,500円 → 18,500円 払う',
+      'けん：立て替え 40,000円／負担 21,500円 → 18,500円 受け取る',
+    ]);
+  });
+});
+
+describe('balanceLabel', () => {
+  it('受け取る・払う・±0', () => {
+    expect(balanceLabel(1000)).toBe('1,000円 受け取る');
+    expect(balanceLabel(-1000)).toBe('1,000円 払う');
+    expect(balanceLabel(0)).toBe('±0');
+  });
+});
+
