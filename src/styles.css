@@ -1236,30 +1236,70 @@ details.split[open] summary {
   height: auto;
 }
 
+/* 雲と飛行機は、重ならないように画面全体にまばらに置く */
 .bg-cloud-1 {
-  bottom: 4%;
-  right: 12%;
+  top: 16%;
+  left: -14px;
   width: 78px;
 }
 
 .bg-cloud-2 {
-  top: 52%;
+  top: 30%;
   right: -22px;
   width: 96px;
 }
 
 .bg-cloud-3 {
+  top: 47%;
+  left: 7%;
+  width: 64px;
+}
+
+.bg-cloud-4 {
+  top: 61%;
+  right: 16%;
+  width: 84px;
+}
+
+.bg-cloud-5 {
+  top: 76%;
+  left: 36%;
+  width: 60px;
+}
+
+.bg-cloud-6 {
   bottom: 12%;
   left: 4%;
   width: 70px;
 }
 
-/* 右上へ上っていくように少し傾ける */
+.bg-cloud-7 {
+  bottom: 3%;
+  right: 10%;
+  width: 78px;
+}
+
 .bg-airplane {
-  bottom: 22%;
-  right: 8%;
   width: 64px;
+}
+
+/* どれも上っていくように少し傾ける(左向きは左右反転) */
+.bg-airplane-1 {
+  bottom: 24%;
+  right: 8%;
   transform: rotate(-10deg);
+}
+
+.bg-airplane-2 {
+  top: 38%;
+  left: 24%;
+  transform: scaleX(-1) rotate(-10deg);
+}
+
+.bg-airplane-3 {
+  top: 88%;
+  left: 52%;
+  transform: rotate(-8deg);
 }
 
 /* 項目の種類の絵文字を入れる丸いバッジ */
