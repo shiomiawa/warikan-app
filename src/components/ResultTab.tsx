@@ -182,8 +182,11 @@ export default function ResultTab({
         <ShareButtons text={shareText} />
       </section>
 
-      <section className="card">
-        <h2>各人の収支</h2>
+      {/* 収支と明細は長くなるので、初めは畳んでおく(見出しをタップで開く) */}
+      <details className="card detail-fold">
+        <summary>
+          <h2>各人の収支</h2>
+        </summary>
         <div className="table-wrap">
           <table>
             <thead>
@@ -221,9 +224,8 @@ export default function ResultTab({
             </tfoot>
           </table>
         </div>
-      </section>
+      </details>
 
-      {/* 項目が多いと長くなるので、初めは畳んでおく */}
       <details className="card detail-fold">
         <summary>
           <h2>明細：項目ごとの負担額</h2>
